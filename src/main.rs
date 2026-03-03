@@ -1,4 +1,4 @@
-use iced::widget::{column, button, text};
+use iced::widget::{button, column, text};
 use iced::{Element, Task, Theme};
 use std::path::PathBuf;
 
@@ -47,17 +47,20 @@ impl RkgTool {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
+        let load_rkg_button = button("Load RKG").on_press(Message::LoadFile);
+
+        let loaded_file_text = text(format!(
+            "Current loaded file path: {}",
+            if let Some(path) = &self.active_file {
+                path.to_str().unwrap()
+            } else {
+                "None"
+            }
+        ));
+
         let content = column![
-            button("Load RKG").on_press(Message::LoadFile),
-            
-            text(format!(
-                "Current loaded file path: {}",
-                if let Some(path) = &self.active_file {
-                    path.to_str().unwrap()
-                } else {
-                    "None"
-                }
-            )),
+            loaded_file_text,
+            load_rkg_button,
         ];
 
         content.into()
