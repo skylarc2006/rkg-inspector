@@ -1,2 +1,2 @@
-# RKG Tool
-An advanced Mario Kart Wii ghost data viewer
+# RKG Inspector
+An advanced Mario Kart Wii ghost data viewer and modifier.
