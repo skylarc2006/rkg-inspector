@@ -1,8 +1,9 @@
 [package]
-name = "rkg-tool"
+name = "rkg-inspector"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 iced = "0.14.0"
 rfd = "0.17.2"
+rkg-utils = { path = "C:\\repos\\rkg-utils", version = "0.1.0" }
