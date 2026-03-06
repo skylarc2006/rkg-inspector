@@ -1,6 +1,6 @@
 use iced::border::Radius;
 use iced::{Alignment, Background, Border, Color, Font, Shadow};
-use iced::widget::{Image, Space, button, Button, column, text};
+use iced::widget::{Button, Image, Space, button, column, row, text};
 use iced::{
     Element, Length, Size, Task, Theme,
     widget::{image, stack},
@@ -46,7 +46,7 @@ impl RkgInspector {
     }
 
     pub fn title(&self) -> String {
-        String::from("RKG Tool")
+        String::from("RKG Inspector")
     }
 
     pub fn theme(&self) -> Theme {
@@ -73,7 +73,7 @@ impl RkgInspector {
             text_color: Color::WHITE,
             border: Border {
                 color: Color::from_rgba8(255, 255, 0, 1.0),
-                width: 5.0,
+                width: 3.5,
                 radius: Radius::new(0),
             },
             shadow: Shadow::default(),
@@ -89,34 +89,40 @@ impl RkgInspector {
             ghost_box
         );
 
-        let load_rkg_text = text("Select Ghost")
+        let select_ghost_text = text("Select Ghost")
             .font(RODIN_NTLG_PRO_EB)
-            .size(36)
+            .size(16)
             .center();
         
-        let load_rkg_button: Button<Message> = button(load_rkg_text)
-            .width(600)
-            .height(67)
+        let select_ghost_button: Button<Message> = button(select_ghost_text)
+            .width(150)
+            .height(40)
             .on_press(Message::LoadFile)
             .style(move |_theme, status| match status {
                 button::Status::Hovered => button::Style {
-                    background: Some(Background::Color(Color::from_rgba8(50, 50, 0, 0.5))),
+                    background: Some(Background::Color(Color::from_rgba8(100, 100, 0, 0.5))),
                     ..common_button_style
                 },
                 _ => common_button_style,
             });
 
+        let select_ghost_button = row![
+            empty_width(490),
+            select_ghost_button,
+        ]
+        .width(Length::Fill)
+        .align_y(Alignment::Start)
+        .spacing(0);
 
-
-        let middle_text = column![
-            empty_height(380),
-            load_rkg_button,
+        let select_ghost_button = column![
+            empty_height(80),
+            select_ghost_button,
         ]
         .width(Length::Fill)
         .align_x(Alignment::Center)
         .spacing(0);
 
-        stack!(background, middle_text)
+        stack!(background, select_ghost_button)
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
