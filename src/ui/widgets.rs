@@ -1,5 +1,5 @@
 use iced::{
-    Alignment, Border, Color, Element, Length, widget::{Button, Image, button, column, container, image, row, stack, text}
+    Alignment, Color, Element, Length, widget::{Button, Image, button, column, image, row, stack, text}
 };
 use rkg_utils::header::slot_id::SlotId;
 
