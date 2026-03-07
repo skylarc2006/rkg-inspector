@@ -110,6 +110,7 @@ impl RkgInspector {
             self.background_handle.clone(),
             self.ghost_box_handle.clone(),
         );
+        let rkg_inspector_text = widgets::rkg_inspector_text();
         let select_ghost_button = widgets::select_ghost_button();
         let toggle_edit_button =
             widgets::toggle_edit_button(self.active_ghost.is_some());
@@ -121,6 +122,7 @@ impl RkgInspector {
 
         let mut s = stack!(
             background,
+            rkg_inspector_text,
             select_ghost_button,
             toggle_edit_button,
             save_as_button,

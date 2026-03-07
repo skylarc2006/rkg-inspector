@@ -9,6 +9,8 @@ const RODIN_NTLG_PRO_EB: Font = Font {
     ..Font::DEFAULT
 };
 
+const VERSION: &str = "v0.1";
+
 pub mod app;
 pub mod files;
 pub mod ui;

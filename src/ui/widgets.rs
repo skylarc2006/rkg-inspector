@@ -1,10 +1,9 @@
 use iced::{
-    Alignment, Element, Length,
-    widget::{Button, Image, button, column, image, row, stack, text},
+    Alignment, Border, Color, Element, Length, widget::{Button, Image, button, column, container, image, row, stack, text}
 };
 use rkg_utils::header::slot_id::SlotId;
 
-use crate::{RODIN_NTLG_PRO_EB, app::Message, ui::*};
+use crate::{RODIN_NTLG_PRO_EB, VERSION, app::Message, ui::*};
 
 const COMMON_BUTTON_WIDTH: u32 = 140;
 const COMMON_BUTTON_HEIGHT: u32 = 40;
@@ -17,6 +16,30 @@ pub fn background(
     let ghost_box: Image = image(ghost_box_handle).scale(0.5);
 
     stack!(background_image, ghost_box).into()
+}
+
+pub fn rkg_inspector_text() -> Element<'static, Message> {
+    let rkg_inspector_text = text(format!("RKG Inspector {}", VERSION))
+    .color(Color::from_rgba8(128, 128, 128, 1.0))
+        .align_x(Alignment::Start)
+        .align_y(Alignment::Start)
+        .width(600)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(28);
+
+    // Set positioning
+    let rkg_inspector_text = row![empty_width(20), rkg_inspector_text,]
+        .width(Length::Fill)
+        .align_y(Alignment::Center)
+        .spacing(0);
+
+    let rkg_inspector_text = column![empty_height(43), rkg_inspector_text,]
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .spacing(0);
+
+    rkg_inspector_text.into()
+
 }
 
 pub fn select_ghost_button() -> Element<'static, Message> {
