@@ -11,7 +11,7 @@ use crate::ui::*;
 pub enum Message {
     LoadFile,
     FilePicked(Option<PathBuf>),
-    ToggleEditing,
+    ToggleEditMenu,
     SaveAsFile,
     FileSaved(Option<PathBuf>),
     SlotIdSelected(SlotId),
@@ -19,27 +19,23 @@ pub enum Message {
 
 pub struct RkgInspector {
     pub active_ghost: Option<Ghost>,
-    pub editing_enabled: bool,
     pub background_handle: image::Handle,
     pub ghost_box_handle: image::Handle,
     pub slot_id_state: combo_box::State<SlotId>,
     pub selected_slot_id: Option<SlotId>,
+    pub edit_menu_active: bool,
 }
 
 impl RkgInspector {
     pub fn new() -> Self {
         Self {
             active_ghost: None,
-            editing_enabled: false,
             background_handle: image::Handle::from_bytes(assets::BACKGROUND),
             ghost_box_handle: image::Handle::from_bytes(assets::GHOST_BOX),
             slot_id_state: combo_box::State::new(SlotId::all()),
             selected_slot_id: None,
+            edit_menu_active: false,
         }
-    }
-
-    pub fn clear_fields(&self) {
-
     }
 
     pub fn title(&self) -> String {
@@ -66,10 +62,7 @@ impl RkgInspector {
                 Task::none()
             }
 
-            Message::ToggleEditing => {
-                self.editing_enabled = !self.editing_enabled;
-                Task::none()
-            }
+            Message::ToggleEditMenu => Task::none(),
 
             Message::SaveAsFile => {
                 if let Some(ghost) = &self.active_ghost {
@@ -119,7 +112,7 @@ impl RkgInspector {
         );
         let select_ghost_button = widgets::select_ghost_button();
         let toggle_edit_button =
-            widgets::toggle_edit_button(self.active_ghost.is_some(), self.editing_enabled);
+            widgets::toggle_edit_button(self.active_ghost.is_some());
         let save_as_button = widgets::save_as_button(self.active_ghost.is_some());
 
         let track_name_text = self.selected_slot_id.as_ref().map(|slot_id| {

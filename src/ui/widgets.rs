@@ -50,13 +50,8 @@ pub fn select_ghost_button() -> Element<'static, Message> {
 
 pub fn toggle_edit_button(
     ghost_is_loaded: bool,
-    editing_enabled: bool,
 ) -> Element<'static, Message> {
-    let edit_text = if editing_enabled {
-        "Editing ON"
-    } else {
-        "Editing OFF"
-    };
+    let edit_text = "Edit Ghost";
 
     let toggle_edit_text = text(edit_text).font(RODIN_NTLG_PRO_EB).size(16).center();
 
@@ -64,10 +59,10 @@ pub fn toggle_edit_button(
         button(toggle_edit_text)
             .width(COMMON_BUTTON_WIDTH)
             .height(COMMON_BUTTON_HEIGHT)
-            .on_press(Message::ToggleEditing)
+            .on_press(Message::ToggleEditMenu)
             .style(move |_theme, status| match status {
-                button::Status::Hovered => styles::hovered_red_green_button_style(editing_enabled),
-                _ => styles::red_green_button_style(editing_enabled),
+                button::Status::Hovered => styles::hovered_button_style(),
+                _ => styles::common_button_style(),
             })
     } else {
         button(toggle_edit_text)
