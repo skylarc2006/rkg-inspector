@@ -24,6 +24,7 @@ pub struct RkgInspector {
     pub slot_id_state: combo_box::State<SlotId>,
     pub selected_slot_id: Option<SlotId>,
     pub edit_menu_active: bool,
+    pub country_handle: Option<image::Handle>,
 }
 
 impl RkgInspector {
@@ -35,6 +36,7 @@ impl RkgInspector {
             slot_id_state: combo_box::State::new(SlotId::all()),
             selected_slot_id: None,
             edit_menu_active: false,
+            country_handle: None,
         }
     }
 
@@ -53,11 +55,19 @@ impl RkgInspector {
             Message::FilePicked(path) => {
                 self.active_ghost = path.and_then(|p| Ghost::new_from_file(&p).ok());
 
-                if let Some(ghost) = &self.active_ghost {
-                    self.selected_slot_id = Some(ghost.header().slot_id());
+                self.selected_slot_id = if let Some(ghost) = &self.active_ghost {
+                    Some(ghost.header().slot_id())
                 } else {
-                    self.selected_slot_id = None;
-                }
+                    None
+                };
+
+                self.country_handle = if let Some(ghost) = &self.active_ghost {
+                    Some(image_handles::get_country_image_handle(
+                        ghost.header().location().country(),
+                    ))
+                } else {
+                    None
+                };
 
                 Task::none()
             }
@@ -86,14 +96,14 @@ impl RkgInspector {
                 } else {
                     Task::none()
                 }
-            },
+            }
 
             Message::FileSaved(path) => {
                 if let Some(ghost) = &mut self.active_ghost {
                     path.and_then(|p| ghost.save_to_file(&p).ok());
-                } 
+                }
                 Task::none()
-            },
+            }
 
             Message::SlotIdSelected(slot_id) => {
                 if let Some(ghost) = &mut self.active_ghost {
@@ -112,13 +122,32 @@ impl RkgInspector {
         );
         let rkg_inspector_text = widgets::rkg_inspector_text();
         let select_ghost_button = widgets::select_ghost_button();
-        let toggle_edit_button =
-            widgets::toggle_edit_button(self.active_ghost.is_some());
+        let toggle_edit_button = widgets::toggle_edit_button(self.active_ghost.is_some());
         let save_as_button = widgets::save_as_button(self.active_ghost.is_some());
 
-        let track_name_text = self.selected_slot_id.as_ref().map(|slot_id| {
-            widgets::track_name_text(slot_id)
-        });
+        let track_name_text = self
+            .selected_slot_id
+            .as_ref()
+            .map(|slot_id| widgets::track_name_text(slot_id));
+
+        let finish_time_text = if let Some(ghost) = &self.active_ghost {
+            Some(widgets::finish_time_text(ghost.header().finish_time()))
+        } else {
+            None
+        };
+
+        let mii_name_text = if let Some(ghost) = &self.active_ghost {
+            Some(widgets::mii_name_text(ghost.header().mii().name()))
+        } else {
+            None
+        };
+
+        let country_image = if self.active_ghost.is_some()
+            && let Some(country_handle) = &self.country_handle {
+            Some(widgets::country_image(country_handle))
+        } else {
+            None
+        };
 
         let mut s = stack!(
             background,
@@ -130,8 +159,20 @@ impl RkgInspector {
         .width(Length::Fill)
         .height(Length::Fill);
 
-        if let Some(text) = track_name_text {
-            s = s.push(text);
+        if let Some(track_name_text) = track_name_text {
+            s = s.push(track_name_text);
+        }
+
+        if let Some(finish_time_text) = finish_time_text {
+            s = s.push(finish_time_text);
+        }
+
+        if let Some(mii_name_text) = mii_name_text {
+            s = s.push(mii_name_text);
+        }
+
+        if let Some(country_image) = country_image {
+            s = s.push(country_image);
         }
 
         s.into()

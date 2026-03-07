@@ -9,6 +9,12 @@ const RODIN_NTLG_PRO_EB: Font = Font {
     ..Font::DEFAULT
 };
 
+const CTMKF: Font = Font {
+    family: iced::font::Family::Name("CTMKF"),
+    weight: iced::font::Weight::Bold,
+    ..Font::DEFAULT
+};
+
 const VERSION: &str = "v0.1";
 
 pub mod app;
@@ -26,5 +32,6 @@ pub fn main() -> iced::Result {
     .window_size(Size::new(1280.0, 720.0))
     .resizable(false)
     .font(include_bytes!("../fonts/FOT-RodinNTLG Pro EB.otf").as_slice())
+    .font(include_bytes!("../fonts/ctmkf.ttf").as_slice())
     .run()
 }
