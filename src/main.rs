@@ -1,21 +1,6 @@
-use iced::Font;
 use iced::Size;
 
 use crate::app::RkgInspector;
-
-const RODIN_NTLG_PRO_EB: Font = Font {
-    family: iced::font::Family::Name("FOT-RodinNTLG Pro"),
-    weight: iced::font::Weight::ExtraBold,
-    ..Font::DEFAULT
-};
-
-const CTMKF: Font = Font {
-    family: iced::font::Family::Name("CTMKF"),
-    weight: iced::font::Weight::Bold,
-    ..Font::DEFAULT
-};
-
-const VERSION: &str = "v0.1";
 
 pub mod app;
 pub mod files;

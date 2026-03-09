@@ -1,11 +1,11 @@
-use iced::widget::{image, svg};
+use iced::widget::image;
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
 use rkg_utils::header::slot_id::SlotId;
 use std::path::PathBuf;
 
 use crate::files::{pick_file, save_as_file};
-use crate::ui::*;
+use crate::ui::{assets, image_handles, widgets};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -23,9 +23,6 @@ pub struct RkgInspector {
     pub ghost_box_handle: image::Handle,
     pub selected_slot_id: Option<SlotId>,
     pub edit_menu_active: bool,
-    pub country_handle: Option<svg::Handle>,
-    pub character_handle: Option<image::Handle>,
-    pub vehicle_handle: Option<image::Handle>,
 }
 
 impl RkgInspector {
@@ -36,9 +33,6 @@ impl RkgInspector {
             ghost_box_handle: image::Handle::from_bytes(assets::GHOST_BOX),
             selected_slot_id: None,
             edit_menu_active: false,
-            country_handle: None,
-            character_handle: None,
-            vehicle_handle: None,
         }
     }
 
@@ -56,37 +50,7 @@ impl RkgInspector {
 
             Message::FilePicked(path) => {
                 self.active_ghost = path.and_then(|p| Ghost::new_from_file(&p).ok());
-
-                self.selected_slot_id = if let Some(ghost) = &self.active_ghost {
-                    Some(ghost.header().slot_id())
-                } else {
-                    None
-                };
-
-                self.country_handle = if let Some(ghost) = &self.active_ghost {
-                    Some(image_handles::get_country_image_handle(
-                        ghost.header().location().country(),
-                    ))
-                } else {
-                    None
-                };
-
-                self.character_handle = if let Some(ghost) = &self.active_ghost {
-                    Some(image_handles::get_character_image_handle(
-                        ghost.header().combo().character(),
-                    ))
-                } else {
-                    None
-                };
-
-                self.vehicle_handle = if let Some(ghost) = &self.active_ghost {
-                    Some(image_handles::get_vehicle_image_handle(
-                        ghost.header().combo().vehicle(),
-                    ))
-                } else {
-                    None
-                };
-
+                self.selected_slot_id = self.active_ghost.as_ref().map(|g| g.header().slot_id());
                 Task::none()
             }
 
@@ -95,7 +59,6 @@ impl RkgInspector {
             Message::SaveAsFile => {
                 if let Some(ghost) = &self.active_ghost {
                     let finish_time = ghost.header().finish_time();
-                    // construct file name from time + mii name + crc32
                     let time = format!(
                         "{:02}m{:02}s{:03}",
                         finish_time.minutes(),
@@ -148,41 +111,33 @@ impl RkgInspector {
             .as_ref()
             .map(|slot_id| widgets::track_name_text(slot_id));
 
-        let finish_time_text = if let Some(ghost) = &self.active_ghost {
-            Some(widgets::finish_time_text(ghost.header().finish_time()))
-        } else {
-            None
-        };
+        let finish_time_text = self
+            .active_ghost
+            .as_ref()
+            .map(|g| widgets::finish_time_text(g.header().finish_time()));
 
-        let mii_name_text = if let Some(ghost) = &self.active_ghost {
-            Some(widgets::mii_name_text(ghost.header().mii().name()))
-        } else {
-            None
-        };
+        let mii_name_text = self
+            .active_ghost
+            .as_ref()
+            .map(|g| widgets::mii_name_text(g.header().mii().name()));
 
-        let country_image = if self.active_ghost.is_some()
-            && let Some(country_handle) = &self.country_handle
-        {
-            Some(widgets::country_image(country_handle))
-        } else {
-            None
-        };
+        let country_image = self.active_ghost.as_ref().map(|g| {
+            widgets::country_image(image_handles::get_country_image_handle(
+                g.header().location().country(),
+            ))
+        });
 
-        let character_image = if self.active_ghost.is_some()
-            && let Some(character_handle) = &self.character_handle
-        {
-            Some(widgets::character_image(character_handle))
-        } else {
-            None
-        };
+        let character_image = self.active_ghost.as_ref().map(|g| {
+            widgets::character_image(image_handles::get_character_image_handle(
+                g.header().combo().character(),
+            ))
+        });
 
-        let vehicle_image = if self.active_ghost.is_some()
-            && let Some(vehicle_handle) = &self.vehicle_handle
-        {
-            Some(widgets::vehicle_image(vehicle_handle))
-        } else {
-            None
-        };
+        let vehicle_image = self.active_ghost.as_ref().map(|g| {
+            widgets::vehicle_image(image_handles::get_vehicle_image_handle(
+                g.header().combo().vehicle(),
+            ))
+        });
 
         let mut s = stack!(
             background,
@@ -194,28 +149,18 @@ impl RkgInspector {
         .width(Length::Fill)
         .height(Length::Fill);
 
-        if let Some(track_name_text) = track_name_text {
-            s = s.push(track_name_text);
-        }
-
-        if let Some(finish_time_text) = finish_time_text {
-            s = s.push(finish_time_text);
-        }
-
-        if let Some(mii_name_text) = mii_name_text {
-            s = s.push(mii_name_text);
-        }
-
-        if let Some(country_image) = country_image {
-            s = s.push(country_image);
-        }
-
-        if let Some(character_image) = character_image {
-            s = s.push(character_image);
-        }
-
-        if let Some(vehicle_image) = vehicle_image {
-            s = s.push(vehicle_image);
+        for elem in [
+            track_name_text,
+            finish_time_text,
+            mii_name_text,
+            country_image,
+            character_image,
+            vehicle_image,
+        ]
+        .into_iter()
+        .flatten()
+        {
+            s = s.push(elem);
         }
 
         s.into()
