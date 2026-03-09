@@ -1,4 +1,4 @@
-use iced::widget::{combo_box, image};
+use iced::widget::{image, svg};
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
 use rkg_utils::header::slot_id::SlotId;
@@ -21,10 +21,11 @@ pub struct RkgInspector {
     pub active_ghost: Option<Ghost>,
     pub background_handle: image::Handle,
     pub ghost_box_handle: image::Handle,
-    pub slot_id_state: combo_box::State<SlotId>,
     pub selected_slot_id: Option<SlotId>,
     pub edit_menu_active: bool,
-    pub country_handle: Option<image::Handle>,
+    pub country_handle: Option<svg::Handle>,
+    pub character_handle: Option<image::Handle>,
+    pub vehicle_handle: Option<image::Handle>,
 }
 
 impl RkgInspector {
@@ -33,10 +34,11 @@ impl RkgInspector {
             active_ghost: None,
             background_handle: image::Handle::from_bytes(assets::BACKGROUND),
             ghost_box_handle: image::Handle::from_bytes(assets::GHOST_BOX),
-            slot_id_state: combo_box::State::new(SlotId::all()),
             selected_slot_id: None,
             edit_menu_active: false,
             country_handle: None,
+            character_handle: None,
+            vehicle_handle: None,
         }
     }
 
@@ -64,6 +66,22 @@ impl RkgInspector {
                 self.country_handle = if let Some(ghost) = &self.active_ghost {
                     Some(image_handles::get_country_image_handle(
                         ghost.header().location().country(),
+                    ))
+                } else {
+                    None
+                };
+
+                self.character_handle = if let Some(ghost) = &self.active_ghost {
+                    Some(image_handles::get_character_image_handle(
+                        ghost.header().combo().character(),
+                    ))
+                } else {
+                    None
+                };
+
+                self.vehicle_handle = if let Some(ghost) = &self.active_ghost {
+                    Some(image_handles::get_vehicle_image_handle(
+                        ghost.header().combo().vehicle(),
                     ))
                 } else {
                     None
@@ -143,8 +161,25 @@ impl RkgInspector {
         };
 
         let country_image = if self.active_ghost.is_some()
-            && let Some(country_handle) = &self.country_handle {
+            && let Some(country_handle) = &self.country_handle
+        {
             Some(widgets::country_image(country_handle))
+        } else {
+            None
+        };
+
+        let character_image = if self.active_ghost.is_some()
+            && let Some(character_handle) = &self.character_handle
+        {
+            Some(widgets::character_image(character_handle))
+        } else {
+            None
+        };
+
+        let vehicle_image = if self.active_ghost.is_some()
+            && let Some(vehicle_handle) = &self.vehicle_handle
+        {
+            Some(widgets::vehicle_image(vehicle_handle))
         } else {
             None
         };
@@ -173,6 +208,14 @@ impl RkgInspector {
 
         if let Some(country_image) = country_image {
             s = s.push(country_image);
+        }
+
+        if let Some(character_image) = character_image {
+            s = s.push(character_image);
+        }
+
+        if let Some(vehicle_image) = vehicle_image {
+            s = s.push(vehicle_image);
         }
 
         s.into()

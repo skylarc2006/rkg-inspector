@@ -1,6 +1,6 @@
 use iced::{
     Alignment, Color, Element, Length,
-    widget::{Button, Image, button, column, image, row, stack, text},
+    widget::{Button, Image, button, column, image, row, stack, svg, text},
 };
 use rkg_utils::header::{in_game_time::InGameTime, slot_id::SlotId};
 
@@ -209,20 +209,53 @@ pub fn mii_name_text(mii_name: &str) -> Element<'_, Message> {
     mii_name_text.into()
 }
 
-pub fn country_image(country_image_handle: &image::Handle) -> Element<'_, Message> {
-    let country_image = image(country_image_handle)
-    .scale(0.77);
+pub fn country_image(country_image_handle: &svg::Handle) -> Element<'_, Message> {
+    let country_image = svg(country_image_handle.clone()).height(32);
 
     // Set positioning
-    let country_image = row![empty_width(524), country_image,]
+    let country_image = row![country_image, empty_width(167)]
         .width(Length::Fill)
         .align_y(Alignment::Center)
         .spacing(0);
 
-    let country_image = column![empty_height(284), country_image,]
+    let country_image = column![empty_height(300), country_image,]
         .width(Length::Fill)
         .align_x(Alignment::Center)
         .spacing(0);
 
     country_image.into()
+}
+
+pub fn character_image(character_image_handle: &image::Handle) -> Element<'_, Message> {
+    let character_image = image(character_image_handle).scale(0.6);
+
+    // Set positioning
+    let character_image = row![empty_width(652), character_image]
+        .width(Length::Fill)
+        .align_y(Alignment::Center)
+        .spacing(0);
+
+    let character_image = column![empty_height(230), character_image,]
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .spacing(0);
+
+    character_image.into()
+}
+
+pub fn vehicle_image(vehicle_image_handle: &image::Handle) -> Element<'_, Message> {
+    let vehicle_image = image(vehicle_image_handle).scale(0.76);
+
+    // Set positioning
+    let vehicle_image = row![empty_width(744), vehicle_image]
+        .width(Length::Fill)
+        .align_y(Alignment::Center)
+        .spacing(0);
+
+    let vehicle_image = column![empty_height(245), vehicle_image,]
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .spacing(0);
+
+    vehicle_image.into()
 }
