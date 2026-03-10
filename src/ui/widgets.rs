@@ -1,12 +1,15 @@
 use iced::{
-    Alignment, Color, Element, Length,
-    widget::{Button, Image, button, image, stack, svg, text},
+    Alignment, Color, Element,
+    widget::{Button, Image, button, image, stack, text},
 };
 use rkg_utils::header::{in_game_time::InGameTime, slot_id::SlotId};
 
 use crate::{
     app::Message,
-    ui::{empty_width, empty_height, positioned, styles, constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION}},
+    ui::{
+        constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
+        positioned, styles,
+    },
 };
 
 const COMMON_BUTTON_WIDTH: u32 = 140;
@@ -47,14 +50,19 @@ pub fn rkg_inspector_text() -> Element<'static, Message> {
 }
 
 pub fn select_ghost_button() -> Element<'static, Message> {
-    let btn = button(text("Select Ghost").font(RODIN_NTLG_PRO_EB).size(16).center())
-        .width(COMMON_BUTTON_WIDTH)
-        .height(COMMON_BUTTON_HEIGHT)
-        .on_press(Message::LoadFile)
-        .style(|_, status| match status {
-            button::Status::Hovered => styles::hovered_button_style(),
-            _ => styles::common_button_style(),
-        });
+    let btn = button(
+        text("Select Ghost")
+            .font(RODIN_NTLG_PRO_EB)
+            .size(16)
+            .center(),
+    )
+    .width(COMMON_BUTTON_WIDTH)
+    .height(COMMON_BUTTON_HEIGHT)
+    .on_press(Message::LoadFile)
+    .style(|_, status| match status {
+        button::Status::Hovered => styles::hovered_button_style(),
+        _ => styles::common_button_style(),
+    });
     positioned(btn, 507, 80)
 }
 
@@ -74,7 +82,7 @@ pub fn save_as_button(ghost_is_loaded: bool) -> Element<'static, Message> {
     )
 }
 
-pub fn track_name_text(slot_id: &SlotId) -> Element<'_, Message> {
+pub fn track_name_text(slot_id: SlotId) -> Element<'static, Message> {
     let t = text(slot_id.to_string())
         .align_x(Alignment::Center)
         .align_y(Alignment::Center)
@@ -101,29 +109,5 @@ pub fn mii_name_text(mii_name: &str) -> Element<'_, Message> {
         .width(548)
         .font(CTMKF)
         .size(26);
-    positioned(t, 282, 255)
-}
-
-pub fn country_image(handle: svg::Handle) -> Element<'static, Message> {
-    let country_image = svg(handle).height(32);
-
-    let country_image = iced::widget::row![country_image, empty_width(167)]
-        .width(Length::Fill)
-        .align_y(Alignment::Center)
-        .spacing(0);
-
-    let country_image = iced::widget::column![empty_height(300), country_image]
-        .width(Length::Fill)
-        .align_x(Alignment::Center)
-        .spacing(0);
-
-    country_image.into()
-}
-
-pub fn character_image(handle: image::Handle) -> Element<'static, Message> {
-    positioned(image(handle).scale(0.6), 652, 230)
-}
-
-pub fn vehicle_image(handle: image::Handle) -> Element<'static, Message> {
-    positioned(image(handle).scale(0.76), 744, 245)
+    positioned(t, 281, 255)
 }

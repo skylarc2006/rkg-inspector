@@ -1,11 +1,12 @@
-use iced::widget::image;
+use iced::widget::{container, image, svg, text, tooltip};
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
-use rkg_utils::header::slot_id::SlotId;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use crate::files::{pick_file, save_as_file};
-use crate::ui::{assets, image_handles, widgets};
+use crate::ui::constants::RODIN_NTLG_PRO_EB;
+use crate::ui::{assets, image_handles, positioned, widgets};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -14,15 +15,16 @@ pub enum Message {
     ToggleEditMenu,
     SaveAsFile,
     FileSaved(Option<PathBuf>),
-    SlotIdSelected(SlotId),
 }
 
 pub struct RkgInspector {
     pub active_ghost: Option<Ghost>,
     pub background_handle: image::Handle,
     pub ghost_box_handle: image::Handle,
-    pub selected_slot_id: Option<SlotId>,
     pub edit_menu_active: bool,
+    pub character_handle: Option<image::Handle>,
+    pub vehicle_handle: Option<image::Handle>,
+    pub country_handle: Option<svg::Handle>,
 }
 
 impl RkgInspector {
@@ -31,8 +33,10 @@ impl RkgInspector {
             active_ghost: None,
             background_handle: image::Handle::from_bytes(assets::BACKGROUND),
             ghost_box_handle: image::Handle::from_bytes(assets::GHOST_BOX),
-            selected_slot_id: None,
             edit_menu_active: false,
+            character_handle: None,
+            vehicle_handle: None,
+            country_handle: None,
         }
     }
 
@@ -50,7 +54,15 @@ impl RkgInspector {
 
             Message::FilePicked(path) => {
                 self.active_ghost = path.and_then(|p| Ghost::new_from_file(&p).ok());
-                self.selected_slot_id = self.active_ghost.as_ref().map(|g| g.header().slot_id());
+                if let Some(ghost) = &self.active_ghost {
+                    self.character_handle = Some(image_handles::get_character_image_handle(ghost.header().combo().character()));
+                    self.vehicle_handle = Some(image_handles::get_vehicle_image_handle(ghost.header().combo().vehicle()));
+                    self.country_handle = Some(image_handles::get_country_image_handle(ghost.header().location().country()));
+                } else {
+                    self.character_handle = None;
+                    self.vehicle_handle = None;
+                    self.country_handle = None;
+                }
                 Task::none()
             }
 
@@ -85,14 +97,6 @@ impl RkgInspector {
                 }
                 Task::none()
             }
-
-            Message::SlotIdSelected(slot_id) => {
-                if let Some(ghost) = &mut self.active_ghost {
-                    ghost.header_mut().set_slot_id(slot_id);
-                    self.selected_slot_id = Some(slot_id);
-                }
-                Task::none()
-            }
         }
     }
 
@@ -107,9 +111,9 @@ impl RkgInspector {
         let save_as_button = widgets::save_as_button(self.active_ghost.is_some());
 
         let track_name_text = self
-            .selected_slot_id
+            .active_ghost
             .as_ref()
-            .map(|slot_id| widgets::track_name_text(slot_id));
+            .map(|g| widgets::track_name_text(g.header().slot_id()));
 
         let finish_time_text = self
             .active_ghost
@@ -121,22 +125,59 @@ impl RkgInspector {
             .as_ref()
             .map(|g| widgets::mii_name_text(g.header().mii().name()));
 
-        let country_image = self.active_ghost.as_ref().map(|g| {
-            widgets::country_image(image_handles::get_country_image_handle(
+        let country_element = self.active_ghost.as_ref().zip(self.country_handle.as_ref()).map(|(g, handle)| {
+            let country_image = svg(handle.clone()).height(32).width(Length::Shrink);
+
+            let tooltip_text = text(format!(
+                "{} ({})",
                 g.header().location().country(),
+                g.header().location().subregion(),
             ))
+            .font(RODIN_NTLG_PRO_EB);
+
+            let img_with_tooltip = tooltip(
+                country_image,
+                container(tooltip_text)
+                    .padding(3)
+                    .style(container::rounded_box),
+                tooltip::Position::FollowCursor,
+            )
+            .delay(Duration::from_millis(500));
+
+            positioned(img_with_tooltip, 534, 300)
         });
 
-        let character_image = self.active_ghost.as_ref().map(|g| {
-            widgets::character_image(image_handles::get_character_image_handle(
-                g.header().combo().character(),
-            ))
+        let character_element = self.active_ghost.as_ref().zip(self.character_handle.as_ref()).map(|(g, handle)| {
+            let tooltip_text = text(g.header().combo().character().to_string()).font(RODIN_NTLG_PRO_EB);
+
+            let img_with_tooltip = tooltip(
+                image(handle.clone()).height(128.0 * 0.6),
+                container(tooltip_text)
+                    .padding(3)
+                    .style(container::rounded_box),
+                tooltip::Position::FollowCursor,
+            )
+            .delay(Duration::from_millis(500));
+            positioned(img_with_tooltip, 678, 255)
         });
 
-        let vehicle_image = self.active_ghost.as_ref().map(|g| {
-            widgets::vehicle_image(image_handles::get_vehicle_image_handle(
+        let vehicle_element = self.active_ghost.as_ref().zip(self.vehicle_handle.as_ref()).map(|(g, handle)| {
+            let tooltip_text = text(format!(
+                "{} ({})",
                 g.header().combo().vehicle(),
+                if g.header().is_automatic_drift() { "Automatic" } else { "Manual" },
             ))
+            .font(RODIN_NTLG_PRO_EB);
+
+            let img_with_tooltip = tooltip(
+                image(handle.clone()).height(100.0 * 0.76),
+                container(tooltip_text)
+                    .padding(3)
+                    .style(container::rounded_box),
+                tooltip::Position::FollowCursor,
+            )
+            .delay(Duration::from_millis(500));
+            positioned(img_with_tooltip, 765, 256)
         });
 
         let mut s = stack!(
@@ -153,9 +194,9 @@ impl RkgInspector {
             track_name_text,
             finish_time_text,
             mii_name_text,
-            country_image,
-            character_image,
-            vehicle_image,
+            country_element,
+            character_element,
+            vehicle_element,
         ]
         .into_iter()
         .flatten()

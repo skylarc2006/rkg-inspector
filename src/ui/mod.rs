@@ -1,4 +1,7 @@
-use iced::{Element, Length, widget::{Space, column, row}};
+use iced::{
+    Element, Length,
+    widget::{Space, column, row},
+};
 
 pub mod assets;
 pub mod constants;
