@@ -5,6 +5,7 @@ use crate::app::RkgInspector;
 pub mod app;
 pub mod files;
 pub mod ui;
+pub mod helpers;
 
 pub fn main() -> iced::Result {
     iced::application(

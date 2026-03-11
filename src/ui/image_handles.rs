@@ -1,6 +1,6 @@
 use iced::widget::{image, svg};
 use rkg_utils::header::{
-    combo::{Character, Vehicle},
+    combo::{character::Character, vehicle::Vehicle},
     location::constants::Country,
 };
 

@@ -7,6 +7,7 @@ use std::time::Duration;
 use crate::files::{pick_file, save_as_file};
 use crate::ui::constants::RODIN_NTLG_PRO_EB;
 use crate::ui::{assets, image_handles, positioned, widgets};
+use crate::helpers::*;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -78,13 +79,9 @@ impl RkgInspector {
                         finish_time.milliseconds()
                     );
                     let mii_name = ghost.header().mii().name();
-                    let crc32_bytes = ghost.file_crc32().to_be_bytes();
-                    let crc32 = format!(
-                        "{:02x}{:02x}{:02x}{:02x}",
-                        crc32_bytes[0], crc32_bytes[1], crc32_bytes[2], crc32_bytes[3],
-                    );
+                    let track_abbreviation = track_abbreviation(ghost.header().slot_id());
 
-                    let default_file_name = format!("{}_{}_{}.rkg", time, mii_name, crc32);
+                    let default_file_name = format!("{}_{}_{}.rkg", time, track_abbreviation, mii_name);
                     Task::perform(save_as_file(default_file_name), Message::FileSaved)
                 } else {
                     Task::none()
