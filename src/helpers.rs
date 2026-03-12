@@ -1,4 +1,4 @@
-use rkg_utils::header::slot_id::SlotId;
+use rkg_utils::header::{mii::favorite_color::FavoriteColor, slot_id::SlotId};
 
 pub fn track_abbreviation(slot_id: SlotId) -> String {
     match slot_id {
@@ -48,5 +48,22 @@ pub fn track_abbreviation(slot_id: SlotId) -> String {
         SlotId::WinningScene => String::from(String::from("WS")),
         SlotId::LosingScene => String::from(String::from("LS")),
         SlotId::Credits => String::from(String::from("C")),
+    }
+}
+
+pub fn favorite_color_string(f: FavoriteColor) -> String {
+    match f {
+        FavoriteColor::Red => String::from("Red"),
+        FavoriteColor::Orange => String::from("Orange"),
+        FavoriteColor::Yellow => String::from("Yellow"),
+        FavoriteColor::LimeGreen => String::from("Light Green"),
+        FavoriteColor::ForestGreen => String::from("Green"),
+        FavoriteColor::RoyalBlue => String::from("Blue"),
+        FavoriteColor::SkyBlue => String::from("Light Blue"),
+        FavoriteColor::Pink => String::from("Pink"),
+        FavoriteColor::Purple => String::from("Purple"),
+        FavoriteColor::Brown => String::from("Brown"),
+        FavoriteColor::White => String::from("White"),
+        FavoriteColor::Black => String::from("Black"),
     }
 }

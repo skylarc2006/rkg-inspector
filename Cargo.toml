@@ -6,4 +6,4 @@ edition = "2024"
 [dependencies]
 iced = { version = "0.14.0", features = ["image", "svg"] }
 rfd = "0.17.2"
-rkg-utils = "0.3.0"
+rkg-utils = "0.3.1"

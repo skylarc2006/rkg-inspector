@@ -3167,9 +3167,9 @@ dependencies = [
 
 [[package]]
 name = "rkg-utils"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bf43fb55986b03da1a20fb704fc6f66456cb8b35e36144c21fe6d37219771c6"
+checksum = "c590ac67e0fb99ee05833e80263bc4398886f710a665b63d8e92334cd9188856"
 dependencies = [
  "chrono",
  "sha1",

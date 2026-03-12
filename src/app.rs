@@ -1,22 +1,11 @@
-use iced::widget::{container, image, svg, text, tooltip};
+use iced::widget::{image, svg};
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
-use std::path::PathBuf;
-use std::time::Duration;
 
 use crate::files::{pick_file, save_as_file};
-use crate::ui::constants::RODIN_NTLG_PRO_EB;
-use crate::ui::{assets, image_handles, positioned, widgets};
 use crate::helpers::*;
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    LoadFile,
-    FilePicked(Option<PathBuf>),
-    ToggleEditMenu,
-    SaveAsFile,
-    FileSaved(Option<PathBuf>),
-}
+use crate::message::Message;
+use crate::ui::{assets, image_handles, widgets};
 
 pub struct RkgInspector {
     pub active_ghost: Option<Ghost>,
@@ -56,9 +45,15 @@ impl RkgInspector {
             Message::FilePicked(path) => {
                 self.active_ghost = path.and_then(|p| Ghost::new_from_file(&p).ok());
                 if let Some(ghost) = &self.active_ghost {
-                    self.character_handle = Some(image_handles::get_character_image_handle(ghost.header().combo().character()));
-                    self.vehicle_handle = Some(image_handles::get_vehicle_image_handle(ghost.header().combo().vehicle()));
-                    self.country_handle = Some(image_handles::get_country_image_handle(ghost.header().location().country()));
+                    self.character_handle = Some(image_handles::get_character_image_handle(
+                        ghost.header().combo().character(),
+                    ));
+                    self.vehicle_handle = Some(image_handles::get_vehicle_image_handle(
+                        ghost.header().combo().vehicle(),
+                    ));
+                    self.country_handle = Some(image_handles::get_country_image_handle(
+                        ghost.header().location().country(),
+                    ));
                 } else {
                     self.character_handle = None;
                     self.vehicle_handle = None;
@@ -81,7 +76,8 @@ impl RkgInspector {
                     let mii_name = ghost.header().mii().name();
                     let track_abbreviation = track_abbreviation(ghost.header().slot_id());
 
-                    let default_file_name = format!("{}_{}_{}.rkg", time, track_abbreviation, mii_name);
+                    let default_file_name =
+                        format!("{}_{}_{}.rkg", time, track_abbreviation, mii_name);
                     Task::perform(save_as_file(default_file_name), Message::FileSaved)
                 } else {
                     Task::none()
@@ -102,6 +98,7 @@ impl RkgInspector {
             self.background_handle.clone(),
             self.ghost_box_handle.clone(),
         );
+        let prerelease_warning_text = widgets::prerelease_warning_text();
         let rkg_inspector_text = widgets::rkg_inspector_text();
         let select_ghost_button = widgets::select_ghost_button();
         let toggle_edit_button = widgets::toggle_edit_button(self.active_ghost.is_some());
@@ -122,63 +119,37 @@ impl RkgInspector {
             .as_ref()
             .map(|g| widgets::mii_name_text(g.header().mii().name()));
 
-        let country_element = self.active_ghost.as_ref().zip(self.country_handle.as_ref()).map(|(g, handle)| {
-            let country_image = svg(handle.clone()).height(32).width(Length::Shrink);
+        let country_element = self
+            .active_ghost
+            .as_ref()
+            .zip(self.country_handle.as_ref())
+            .map(|(g, h)| widgets::country_element(g, h));
 
-            let tooltip_text = text(format!(
-                "{} ({})",
-                g.header().location().country(),
-                g.header().location().subregion(),
-            ))
-            .font(RODIN_NTLG_PRO_EB);
+        let character_element = self
+            .active_ghost
+            .as_ref()
+            .zip(self.character_handle.as_ref())
+            .map(|(g, h)| widgets::character_element(g, h));
 
-            let img_with_tooltip = tooltip(
-                country_image,
-                container(tooltip_text)
-                    .padding(3)
-                    .style(container::rounded_box),
-                tooltip::Position::FollowCursor,
-            )
-            .delay(Duration::from_millis(500));
+        let vehicle_element = self
+            .active_ghost
+            .as_ref()
+            .zip(self.vehicle_handle.as_ref())
+            .map(|(g, h)| widgets::vehicle_element(g, h));
 
-            positioned(img_with_tooltip, 534, 300)
-        });
+        let lap_splits_box = self
+            .active_ghost
+            .as_ref()
+            .map(|g| widgets::lap_splits_box(g.header().lap_split_times()));
 
-        let character_element = self.active_ghost.as_ref().zip(self.character_handle.as_ref()).map(|(g, handle)| {
-            let tooltip_text = text(g.header().combo().character().to_string()).font(RODIN_NTLG_PRO_EB);
-
-            let img_with_tooltip = tooltip(
-                image(handle.clone()).height(128.0 * 0.6),
-                container(tooltip_text)
-                    .padding(3)
-                    .style(container::rounded_box),
-                tooltip::Position::FollowCursor,
-            )
-            .delay(Duration::from_millis(500));
-            positioned(img_with_tooltip, 678, 255)
-        });
-
-        let vehicle_element = self.active_ghost.as_ref().zip(self.vehicle_handle.as_ref()).map(|(g, handle)| {
-            let tooltip_text = text(format!(
-                "{} ({})",
-                g.header().combo().vehicle(),
-                if g.header().is_automatic_drift() { "Automatic" } else { "Manual" },
-            ))
-            .font(RODIN_NTLG_PRO_EB);
-
-            let img_with_tooltip = tooltip(
-                image(handle.clone()).height(100.0 * 0.76),
-                container(tooltip_text)
-                    .padding(3)
-                    .style(container::rounded_box),
-                tooltip::Position::FollowCursor,
-            )
-            .delay(Duration::from_millis(500));
-            positioned(img_with_tooltip, 765, 256)
-        });
+        let mii_box = self
+            .active_ghost
+            .as_ref()
+            .map(|g| widgets::mii_info_box(g.header().mii()));
 
         let mut s = stack!(
             background,
+            prerelease_warning_text,
             rkg_inspector_text,
             select_ghost_button,
             toggle_edit_button,
@@ -194,6 +165,8 @@ impl RkgInspector {
             country_element,
             character_element,
             vehicle_element,
+            lap_splits_box,
+            mii_box,
         ]
         .into_iter()
         .flatten()

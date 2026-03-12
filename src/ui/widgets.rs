@@ -1,11 +1,16 @@
 use iced::{
-    Alignment, Color, Element,
-    widget::{Button, Image, button, image, stack, text},
+    Alignment, Color, Element, Length,
+    widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip},
 };
-use rkg_utils::header::{in_game_time::InGameTime, slot_id::SlotId};
+use rkg_utils::{
+    Ghost,
+    header::{in_game_time::InGameTime, mii::Mii, slot_id::SlotId},
+};
+use std::time::Duration;
 
 use crate::{
-    app::Message,
+    helpers::favorite_color_string,
+    message::Message,
     ui::{
         constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
         positioned, styles,
@@ -36,6 +41,17 @@ pub fn background(
     let background_image = image(background_handle).scale(1.0);
     let ghost_box: Image = image(ghost_box_handle).scale(0.5);
     stack!(background_image, ghost_box).into()
+}
+
+pub fn prerelease_warning_text() -> Element<'static, Message> {
+    let t = text("WARNING: this is an unfinished pre-release version for testing! ")
+        .color(Color::from_rgba8(128, 128, 128, 1.0))
+        .align_x(Alignment::End)
+        .align_y(Alignment::Start)
+        .width(Length::Fill)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(14);
+    positioned(t, 0, 5)
 }
 
 pub fn rkg_inspector_text() -> Element<'static, Message> {
@@ -110,4 +126,305 @@ pub fn mii_name_text(mii_name: &str) -> Element<'_, Message> {
         .font(CTMKF)
         .size(26);
     positioned(t, 281, 255)
+}
+
+pub fn country_element<'a>(ghost: &'a Ghost, handle: &'a svg::Handle) -> Element<'a, Message> {
+    let country_image = svg(handle.clone()).height(32).width(Length::Shrink);
+
+    let tooltip_text = text(format!(
+        "{} ({})",
+        ghost.header().location().country(),
+        ghost.header().location().subregion(),
+    ))
+    .font(RODIN_NTLG_PRO_EB);
+
+    let img_with_tooltip = tooltip(
+        country_image,
+        container(tooltip_text)
+            .padding(4)
+            .style(styles::tooltip_style()),
+        tooltip::Position::FollowCursor,
+    )
+    .delay(Duration::from_millis(500));
+
+    positioned(img_with_tooltip, 534, 300)
+}
+
+pub fn character_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Element<'a, Message> {
+    let tooltip_text = text(ghost.header().combo().character().to_string()).font(RODIN_NTLG_PRO_EB);
+
+    let img_with_tooltip = tooltip(
+        image(handle.clone()).height(128.0 * 0.6),
+        container(tooltip_text)
+            .padding(4)
+            .style(styles::tooltip_style()),
+        tooltip::Position::FollowCursor,
+    )
+    .delay(Duration::from_millis(500));
+
+    positioned(img_with_tooltip, 678, 255)
+}
+
+pub fn vehicle_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Element<'a, Message> {
+    let tooltip_text = text(format!(
+        "{} ({})",
+        ghost.header().combo().vehicle(),
+        if ghost.header().is_automatic_drift() {
+            "Automatic"
+        } else {
+            "Manual"
+        },
+    ))
+    .font(RODIN_NTLG_PRO_EB);
+
+    let img_with_tooltip = tooltip(
+        image(handle.clone()).height(100.0 * 0.76),
+        container(tooltip_text)
+            .padding(4)
+            .style(styles::tooltip_style()),
+        tooltip::Position::FollowCursor,
+    )
+    .delay(Duration::from_millis(500));
+
+    positioned(img_with_tooltip, 765, 256)
+}
+
+pub fn lap_splits_box<'a>(lap_splits: &[InGameTime]) -> Element<'a, Message> {
+    let mut lap_splits_text = format!("Lap 1:   {}", lap_splits[0].to_string());
+
+    for (idx, lap) in lap_splits[1..].iter().enumerate() {
+        lap_splits_text += format!(
+            "\nLap {}:{}{}",
+            idx + 2,
+            if idx + 2 < 10 { "   " } else { " " },
+            lap.to_string()
+        )
+        .as_str();
+    }
+
+    // adjust lap split box size based on number of laps
+    match lap_splits.len() {
+        1 | 2 | 3 | 4 | 5 | 6 => {
+            let lap_splits_element = container(
+                text(lap_splits_text)
+                    .font(RODIN_NTLG_PRO_EB)
+                    .align_x(Alignment::End)
+                    .align_y(Alignment::Center)
+                    .color(Color::WHITE)
+                    .size(25.5),
+            )
+            .padding(10)
+            .style(styles::info_box_style());
+
+            positioned(lap_splits_element, 30, 135)
+        }
+
+        7 => {
+            let lap_splits_element = container(
+                text(lap_splits_text)
+                    .font(RODIN_NTLG_PRO_EB)
+                    .align_x(Alignment::End)
+                    .align_y(Alignment::Center)
+                    .color(Color::WHITE)
+                    .size(21.9),
+            )
+            .padding(10)
+            .style(styles::info_box_style());
+
+            positioned(lap_splits_element, 66, 135)
+        }
+
+        8 => {
+            let lap_splits_element = container(
+                text(lap_splits_text)
+                    .font(RODIN_NTLG_PRO_EB)
+                    .align_x(Alignment::End)
+                    .align_y(Alignment::Center)
+                    .color(Color::WHITE)
+                    .size(19.1),
+            )
+            .padding(10)
+            .style(styles::info_box_style());
+
+            positioned(lap_splits_element, 94, 135)
+        }
+
+        9 => {
+            let lap_splits_element = container(
+                text(lap_splits_text)
+                    .font(RODIN_NTLG_PRO_EB)
+                    .align_x(Alignment::End)
+                    .align_y(Alignment::Center)
+                    .color(Color::WHITE)
+                    .size(17.05),
+            )
+            .padding(10)
+            .style(styles::info_box_style());
+
+            positioned(lap_splits_element, 114, 135)
+        }
+
+        10 => {
+            let lap_splits_element = container(
+                text(lap_splits_text)
+                    .font(RODIN_NTLG_PRO_EB)
+                    .align_x(Alignment::End)
+                    .align_y(Alignment::Center)
+                    .color(Color::WHITE)
+                    .size(15.3),
+            )
+            .padding(10)
+            .style(styles::info_box_style());
+
+            positioned(lap_splits_element, 132, 135)
+        }
+
+        _ => {
+            let lap_splits_element = container(
+                text(lap_splits_text)
+                    .font(RODIN_NTLG_PRO_EB)
+                    .align_x(Alignment::End)
+                    .align_y(Alignment::Center)
+                    .color(Color::WHITE)
+                    .size(13.95),
+            )
+            .padding(10)
+            .style(styles::info_box_style());
+
+            positioned(lap_splits_element, 145, 135)
+        }
+    }
+}
+
+pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
+    let font_size = 14.0;
+
+    let label_col = column![
+        text("Mii Info")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size * 1.5),
+        text("Creator:")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size),
+        text("Creation date:")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size),
+        text("Type:")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size),
+        text("Gender:")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size),
+        text("Birthday:")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size),
+        /*
+        text("Height:")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size),
+        text("Weight:")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size),
+        */
+        text("Favorite color:")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size),
+        text("Favorite Mii?")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size),
+    ];
+
+    let value_col = column![
+        text(" ")
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size * 1.5),
+        text(if mii.creator_name() != "" {
+            mii.creator_name()
+        } else {
+            "—"
+        })
+        .font(CTMKF)
+        .color(Color::WHITE)
+        .size(font_size)
+        .align_x(Alignment::End),
+        text(mii.creation_date().to_string())
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size)
+            .align_x(Alignment::End),
+        text(mii.mii_type().to_string())
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size)
+            .align_x(Alignment::End),
+        text(if mii.is_girl() { "Female" } else { "Male" })
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size)
+            .align_x(Alignment::End),
+        text(
+            if let Some(month) = mii.birthday().month()
+                && let Some(day) = mii.birthday().day()
+            {
+                format!("{:0>2}/{:0>2}", month, day)
+            } else {
+                String::from("Not set")
+            }
+        )
+        .font(CTMKF)
+        .color(Color::WHITE)
+        .size(font_size)
+        .align_x(Alignment::End),
+        /*
+        text(format!(
+            "{} ({:.1}%)",
+            mii.build().height(),
+            mii.build().height() as f32 / 1.27 // 127 is max height/weight
+        ))
+        .font(CTMKF)
+        .color(Color::WHITE)
+        .size(font_size)
+        .align_x(Alignment::End),
+        text(format!(
+            "{} ({:.1}%)",
+            mii.build().weight(),
+            mii.build().weight() as f32 / 1.27
+        ))
+        .font(CTMKF)
+        .color(Color::WHITE)
+        .size(font_size)
+        .align_x(Alignment::End),
+        */
+        text(favorite_color_string(mii.favorite_color()))
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size)
+            .align_x(Alignment::End),
+        text(mii.is_favorite())
+            .font(CTMKF)
+            .color(Color::WHITE)
+            .size(font_size)
+            .align_x(Alignment::End),
+    ]
+    .align_x(Alignment::End)
+    .width(149);
+
+    let content = row![label_col, value_col].spacing(10);
+
+    let lap_splits_element = container(content)
+        .padding(10)
+        .style(styles::info_box_style());
+
+    positioned(lap_splits_element, 30, 391) /* 367 with height and weight shown */
 }
