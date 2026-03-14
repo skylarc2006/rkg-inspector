@@ -7,4 +7,5 @@ pub enum Message {
     ToggleEditMenu,
     SaveAsFile,
     FileSaved(Option<PathBuf>),
+    ToggleFooterView,
 }

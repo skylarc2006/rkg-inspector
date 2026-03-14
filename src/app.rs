@@ -90,6 +90,8 @@ impl RkgInspector {
                 }
                 Task::none()
             }
+
+            Message::ToggleFooterView => Task::none(),
         }
     }
 
@@ -147,6 +149,26 @@ impl RkgInspector {
             .as_ref()
             .map(|g| widgets::mii_info_box(g.header().mii()));
 
+        let date_set_box = self
+            .active_ghost
+            .as_ref()
+            .map(|g| widgets::date_set_box(g.header().date_set()));
+
+        let ghost_type_box = self
+            .active_ghost
+            .as_ref()
+            .map(|g| widgets::ghost_type_box(g));
+
+        let controller_box = self
+            .active_ghost
+            .as_ref()
+            .map(|g| widgets::controller_box(g.header().controller()));
+
+        let external_footer_button = self
+            .active_ghost
+            .as_ref()
+            .and_then(|g| widgets::external_footer_button(g));
+
         let mut s = stack!(
             background,
             prerelease_warning_text,
@@ -167,6 +189,10 @@ impl RkgInspector {
             vehicle_element,
             lap_splits_box,
             mii_box,
+            date_set_box,
+            ghost_type_box,
+            controller_box,
+            external_footer_button,
         ]
         .into_iter()
         .flatten()

@@ -4,7 +4,10 @@ use iced::{
 };
 use rkg_utils::{
     Ghost,
-    header::{in_game_time::InGameTime, mii::Mii, slot_id::SlotId},
+    footer::FooterType,
+    header::{
+        controller::Controller, date::Date, in_game_time::InGameTime, mii::Mii, slot_id::SlotId,
+    },
 };
 use std::time::Duration;
 
@@ -119,13 +122,18 @@ pub fn finish_time_text(finish_time: &InGameTime) -> Element<'_, Message> {
 }
 
 pub fn mii_name_text(mii_name: &str) -> Element<'_, Message> {
+    // let char_count = mii_name.chars().count().max(1) as f32;
+    // let size = (216.0 / (char_count * 1.62)).min(13.45);
+    let size = 26.0;
     let t = text(mii_name)
         .align_x(Alignment::Center)
-        .align_y(Alignment::Start)
-        .width(548)
+        .align_y(Alignment::Center)
+        .width(216)
+        .height(33)
         .font(CTMKF)
-        .size(26);
-    positioned(t, 281, 255)
+        .wrapping(text::Wrapping::None)
+        .size(size);
+    positioned(t, 448, 257)
 }
 
 pub fn country_element<'a>(ghost: &'a Ghost, handle: &'a svg::Handle) -> Element<'a, Message> {
@@ -422,9 +430,84 @@ pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
 
     let content = row![label_col, value_col].spacing(10);
 
-    let lap_splits_element = container(content)
+    let mii_info_element = container(content)
         .padding(10)
         .style(styles::info_box_style());
 
-    positioned(lap_splits_element, 30, 391) /* 367 with height and weight shown */
+    positioned(mii_info_element, 30, 391) /* 367 with height and weight shown */
+}
+
+pub fn date_set_box<'a>(date: &'a Date) -> Element<'a, Message> {
+    let date_set_text = text(format!("Date set:\n{}", date.to_string()))
+        .font(RODIN_NTLG_PRO_EB)
+        .color(Color::WHITE)
+        .size(20)
+        .width(150)
+        .height(50)
+        .align_x(Alignment::Center)
+        .align_y(Alignment::Center);
+
+    let date_set_element = container(date_set_text)
+        .padding(10)
+        .style(styles::info_box_style());
+
+    positioned(date_set_element, 331, 370)
+}
+
+pub fn ghost_type_box<'a>(ghost: &'a Ghost) -> Element<'a, Message> {
+    let ghost_text = format!(
+        "Ghost type: 0x{:0>2X}\n{}",
+        u8::from(ghost.header().ghost_type()),
+        ghost.header().ghost_type().to_string()
+    );
+
+    let ghost_type_text = text(ghost_text)
+        .font(RODIN_NTLG_PRO_EB)
+        .color(Color::WHITE)
+        .size(20)
+        .width(243)
+        .height(50)
+        .align_x(Alignment::Center)
+        .align_y(Alignment::Center);
+
+    let ghost_type_element = container(ghost_type_text)
+        .padding(10)
+        .style(styles::info_box_style());
+
+    positioned(ghost_type_element, 508, 370)
+}
+
+pub fn controller_box(controller: Controller) -> Element<'static, Message> {
+    let date_set_text = text(format!("Controller:\n{}", controller.to_string()))
+        .font(RODIN_NTLG_PRO_EB)
+        .color(Color::WHITE)
+        .size(20)
+        .width(150)
+        .height(50)
+        .align_x(Alignment::Center)
+        .align_y(Alignment::Center);
+
+    let date_set_element = container(date_set_text)
+        .padding(10)
+        .style(styles::info_box_style());
+
+    positioned(date_set_element, 778, 370)
+}
+
+pub fn external_footer_button<'a>(ghost: &'a Ghost) -> Option<Element<'a, Message>> {
+    let label = match ghost.footer()? {
+        FooterType::CTGPFooter(_) => "CTGP ghost",
+        FooterType::SPFooter(_) => "MKW-SP ghost",
+    };
+
+    let btn = button(text(label).font(RODIN_NTLG_PRO_EB).size(16).center())
+        .width(263)
+        .height(COMMON_BUTTON_HEIGHT)
+        .on_press(Message::ToggleFooterView)
+        .style(|_, status| match status {
+            button::Status::Hovered => styles::hovered_button_style(),
+            _ => styles::common_button_style(),
+        });
+
+    Some(positioned(btn, 508, 446))
 }
