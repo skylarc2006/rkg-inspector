@@ -6,6 +6,7 @@ pub mod app;
 pub mod files;
 pub mod helpers;
 pub mod message;
+pub mod mii_rendering;
 pub mod ui;
 
 pub fn main() -> iced::Result {

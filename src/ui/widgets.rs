@@ -511,3 +511,9 @@ pub fn external_footer_button<'a>(ghost: &'a Ghost) -> Option<Element<'a, Messag
 
     Some(positioned(btn, 508, 446))
 }
+
+pub fn mii_image_element<'a>(handle: &'a image::Handle) -> Element<'a, Message> {
+    let img = image(handle).height(90);
+
+    positioned(img, 359, 243)
+}

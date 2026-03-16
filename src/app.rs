@@ -15,6 +15,7 @@ pub struct RkgInspector {
     pub character_handle: Option<image::Handle>,
     pub vehicle_handle: Option<image::Handle>,
     pub country_handle: Option<svg::Handle>,
+    pub mii_handle: Option<image::Handle>,
 }
 
 impl RkgInspector {
@@ -27,6 +28,7 @@ impl RkgInspector {
             character_handle: None,
             vehicle_handle: None,
             country_handle: None,
+            mii_handle: None,
         }
     }
 
@@ -43,6 +45,7 @@ impl RkgInspector {
             Message::LoadFile => Task::perform(pick_file(), Message::FilePicked),
 
             Message::FilePicked(path) => {
+                self.mii_handle = None;
                 self.active_ghost = path.and_then(|p| Ghost::new_from_file(&p).ok());
                 if let Some(ghost) = &self.active_ghost {
                     self.character_handle = Some(image_handles::get_character_image_handle(
@@ -54,11 +57,21 @@ impl RkgInspector {
                     self.country_handle = Some(image_handles::get_country_image_handle(
                         ghost.header().location().country(),
                     ));
+                    Task::perform(
+                        image_handles::get_mii_image_handle(ghost.header().mii().raw_data().to_vec()),
+                        Message::MiiHandleLoaded,
+                    )
                 } else {
                     self.character_handle = None;
                     self.vehicle_handle = None;
                     self.country_handle = None;
+                    self.mii_handle = None;
+                    Task::none()
                 }
+            },
+
+            Message::MiiHandleLoaded(mii_handle) => {
+                self.mii_handle = mii_handle;
                 Task::none()
             }
 
@@ -169,6 +182,12 @@ impl RkgInspector {
             .as_ref()
             .and_then(|g| widgets::external_footer_button(g));
 
+        let mii_image_element = self
+            .active_ghost
+            .as_ref()
+            .zip(self.mii_handle.as_ref())
+            .map(|(_, h)| widgets::mii_image_element(h));
+
         let mut s = stack!(
             background,
             prerelease_warning_text,
@@ -193,6 +212,7 @@ impl RkgInspector {
             ghost_type_box,
             controller_box,
             external_footer_button,
+            mii_image_element,
         ]
         .into_iter()
         .flatten()

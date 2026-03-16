@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use iced::widget::image;
+
 #[derive(Debug, Clone)]
 pub enum Message {
     LoadFile,
@@ -8,4 +10,5 @@ pub enum Message {
     SaveAsFile,
     FileSaved(Option<PathBuf>),
     ToggleFooterView,
+    MiiHandleLoaded(Option<image::Handle>),
 }

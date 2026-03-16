@@ -366,3 +366,22 @@ pub fn get_vehicle_image_handle(vehicle: Vehicle) -> image::Handle {
         Vehicle::Phantom => image::Handle::from_bytes(VEHICLE_PHANTOM),
     }
 }
+
+fn tokio_runtime() -> &'static tokio::runtime::Runtime {
+    static RT: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
+    RT.get_or_init(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+    })
+}
+
+pub async fn get_mii_image_handle(mii_data: Vec<u8>) -> Option<image::Handle> {
+    let url = crate::mii_rendering::get_mii_studio_url(&mii_data);
+    let bytes = tokio_runtime()
+        .spawn(async move { reqwest::get(url).await.ok()?.bytes().await.ok() })
+        .await
+        .ok()??;
+    Some(image::Handle::from_bytes(bytes))
+}
