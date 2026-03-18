@@ -9,8 +9,16 @@ const WRINKLES_MAP: [u8; 12] = [0, 0, 0, 0, 5, 2, 3, 7, 8, 0, 9, 11];
 /// Construct Mii Studio API URL from Mii bytes
 pub fn get_mii_studio_url(mii_data: &[u8]) -> String {
     let data = encode_studio_data(&generate_studio_data_array(mii_data));
+    let camera_type = "face";
+    let expression = "normal";
+    let width = 270;
+    let character_y_rotate = 328;
+    let shader_type = "wiiu_blinn";
 
-    format!("https://studio.mii.nintendo.com/miis/image.png?data={}&type=face&expression=normal&width=270", data)
+    format!(
+        "https://mii-unsecure.ariankordi.net/miis/image.png?data={}&type={}&expression={}&width={}&characterYRotate={}&shaderType={}",
+        data, camera_type, expression, width, character_y_rotate, shader_type
+    )
 }
 
 /// Encodes the studio data array into the hex string format required by the API.
@@ -33,7 +41,12 @@ fn read_u16_be(buf: &[u8], offset: usize) -> u16 {
 }
 
 fn read_u32_be(buf: &[u8], offset: usize) -> u32 {
-    u32::from_be_bytes([buf[offset], buf[offset + 1], buf[offset + 2], buf[offset + 3]])
+    u32::from_be_bytes([
+        buf[offset],
+        buf[offset + 1],
+        buf[offset + 2],
+        buf[offset + 3],
+    ])
 }
 
 /// Parses the Wii Mii data and generates the 46-byte studio data array.
@@ -48,9 +61,9 @@ fn generate_studio_data_array(buf: &[u8]) -> [u8; 46] {
     let weight = buf[0x17];
 
     studio[0x16] = if is_girl { 1 } else { 0 }; // Gender
-    studio[0x15] = fav_color;                    // Favorite Color
-    studio[0x1E] = height;                       // Height
-    studio[2] = weight;                          // Weight
+    studio[0x15] = fav_color; // Favorite Color
+    studio[0x1E] = height; // Height
+    studio[2] = weight; // Weight
 
     // --- Face ---
     let tmp_u16_20 = read_u16_be(buf, 0x20);
@@ -145,7 +158,11 @@ fn generate_studio_data_array(buf: &[u8]) -> [u8; 46] {
 
     studio[0x29] = mustache_style;
     studio[1] = beard_style;
-    studio[0] = if facial_hair_color == 0 { 8 } else { facial_hair_color }; // Map color 0 to 8
+    studio[0] = if facial_hair_color == 0 {
+        8
+    } else {
+        facial_hair_color
+    }; // Map color 0 to 8
     studio[0x28] = mustache_scale;
     studio[0x2A] = mustache_y_position;
 

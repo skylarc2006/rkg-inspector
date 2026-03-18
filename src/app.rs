@@ -58,7 +58,9 @@ impl RkgInspector {
                         ghost.header().location().country(),
                     ));
                     Task::perform(
-                        image_handles::get_mii_image_handle(ghost.header().mii().raw_data().to_vec()),
+                        image_handles::get_mii_image_handle(
+                            ghost.header().mii().raw_data().to_vec(),
+                        ),
                         Message::MiiHandleLoaded,
                     )
                 } else {
@@ -68,7 +70,7 @@ impl RkgInspector {
                     self.mii_handle = None;
                     Task::none()
                 }
-            },
+            }
 
             Message::MiiHandleLoaded(mii_handle) => {
                 self.mii_handle = mii_handle;

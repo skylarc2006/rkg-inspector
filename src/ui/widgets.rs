@@ -1,5 +1,5 @@
 use iced::{
-    Alignment, Color, Element, Length,
+    Alignment, Color, Element, Length, Rectangle,
     widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip},
 };
 use rkg_utils::{
@@ -513,7 +513,14 @@ pub fn external_footer_button<'a>(ghost: &'a Ghost) -> Option<Element<'a, Messag
 }
 
 pub fn mii_image_element<'a>(handle: &'a image::Handle) -> Element<'a, Message> {
-    let img = image(handle).height(90);
+    let img = image(handle)
+        .crop(Rectangle {
+            width: 270,
+            height: 229,
+            x: 0,
+            y: 0,
+        })
+        .width(115);
 
-    positioned(img, 359, 243)
+    positioned(img, 345, 234)
 }
