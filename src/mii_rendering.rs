@@ -7,10 +7,14 @@ const MAKEUP_MAP: [u8; 12] = [0, 1, 6, 9, 0, 0, 0, 0, 0, 10, 0, 0];
 const WRINKLES_MAP: [u8; 12] = [0, 0, 0, 0, 5, 2, 3, 7, 8, 0, 9, 11];
 
 /// Construct Mii Studio API URL from Mii bytes
-pub fn get_mii_studio_url(mii_data: &[u8]) -> String {
+pub fn get_mii_studio_url(mii_data: &[u8], is_fawwe: bool) -> String {
     let data = encode_studio_data(&generate_studio_data_array(mii_data));
     let camera_type = "face";
-    let expression = "normal";
+    let expression = if is_fawwe {
+        "anger_open_mouth"
+    } else {
+        "normal"
+    };
     let width = 270;
     let character_y_rotate = 328;
     let shader_type = "wiiu_blinn";
