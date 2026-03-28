@@ -1,7 +1,6 @@
 use iced::widget::{image, svg};
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
-use rkg_utils::footer::FooterType;
 
 use crate::files::{pick_file, save_as_file};
 use crate::helpers::*;
@@ -17,7 +16,6 @@ pub struct RkgInspector {
     pub vehicle_handle: Option<image::Handle>,
     pub country_handle: Option<svg::Handle>,
     pub mii_handle: Option<image::Handle>,
-    pub is_fawwe: bool,
 }
 
 impl RkgInspector {
@@ -31,7 +29,6 @@ impl RkgInspector {
             vehicle_handle: None,
             country_handle: None,
             mii_handle: None,
-            is_fawwe: false,
         }
     }
 
@@ -49,7 +46,6 @@ impl RkgInspector {
 
             Message::FilePicked(path) => {
                 self.mii_handle = None;
-                self.is_fawwe = false;
                 self.active_ghost = path.and_then(|p| Ghost::new_from_file(&p).ok());
                 if let Some(ghost) = &self.active_ghost {
                     self.character_handle = Some(image_handles::get_character_image_handle(
@@ -61,16 +57,9 @@ impl RkgInspector {
                     self.country_handle = Some(image_handles::get_country_image_handle(
                         ghost.header().location().country(),
                     ));
-
-                    if let Some(FooterType::CTGPFooter(ctgp_footer)) = ghost.footer() {
-                        let player_id = ctgp_footer.player_id();
-                        self.is_fawwe = player_id == 10030693781103258110;
-                    }
-
                     Task::perform(
                         image_handles::get_mii_image_handle(
                             ghost.header().mii().raw_data().to_vec(),
-                            self.is_fawwe,
                         ),
                         Message::MiiHandleLoaded,
                     )
@@ -199,7 +188,7 @@ impl RkgInspector {
             .active_ghost
             .as_ref()
             .zip(self.mii_handle.as_ref())
-            .map(|(_, h)| widgets::mii_image_element(h, self.is_fawwe));
+            .map(|(_, h)| widgets::mii_image_element(h));
 
         let mut s = stack!(
             background,

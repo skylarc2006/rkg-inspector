@@ -1,5 +1,5 @@
 use iced::{
-    Alignment, Color, Element, Length, Rectangle, Rotation,
+    Alignment, Color, Element, Length, Rectangle,
     widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip},
 };
 use rkg_utils::{
@@ -512,7 +512,7 @@ pub fn external_footer_button<'a>(ghost: &'a Ghost) -> Option<Element<'a, Messag
     Some(positioned(btn, 508, 446))
 }
 
-pub fn mii_image_element<'a>(handle: &'a image::Handle, is_fawwe: bool) -> Element<'a, Message> {
+pub fn mii_image_element<'a>(handle: &'a image::Handle) -> Element<'a, Message> {
     let crop = Rectangle {
         width: 270,
         height: 229,
@@ -524,14 +524,5 @@ pub fn mii_image_element<'a>(handle: &'a image::Handle, is_fawwe: bool) -> Eleme
         .crop(crop)
         .width(115);
 
-    
-    let img = if is_fawwe {
-    img.rotation(Rotation::Floating(iced::Radians(3.14159)))
-    } else {
-        img
-    };
-
-    let y = if is_fawwe { 258 } else { 234 };
-
-    positioned(img, 345, y)
+    positioned(img, 345, 234)
 }
