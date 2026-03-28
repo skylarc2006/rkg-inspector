@@ -15,8 +15,7 @@ use crate::{
     helpers::favorite_color_string,
     message::Message,
     ui::{
-        constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
-        positioned, styles,
+        constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION}, fit_text::FitText, positioned, styles
     },
 };
 
@@ -77,7 +76,7 @@ pub fn select_ghost_button() -> Element<'static, Message> {
     )
     .width(COMMON_BUTTON_WIDTH)
     .height(COMMON_BUTTON_HEIGHT)
-    .on_press(Message::LoadFile)
+    .on_press(Message::LoadGhost)
     .style(|_, status| match status {
         button::Status::Hovered => styles::hovered_button_style(),
         _ => styles::common_button_style(),
@@ -95,7 +94,7 @@ pub fn toggle_edit_button(ghost_is_loaded: bool) -> Element<'static, Message> {
 
 pub fn save_as_button(ghost_is_loaded: bool) -> Element<'static, Message> {
     positioned(
-        ghost_action_button("Save As...", ghost_is_loaded, Message::SaveAsFile),
+        ghost_action_button("Save As...", ghost_is_loaded, Message::SaveGhostAsFile),
         807,
         80,
     )
@@ -122,18 +121,16 @@ pub fn finish_time_text(finish_time: &InGameTime) -> Element<'_, Message> {
 }
 
 pub fn mii_name_text(mii_name: &str) -> Element<'_, Message> {
-    // let char_count = mii_name.chars().count().max(1) as f32;
-    // let size = (216.0 / (char_count * 1.62)).min(13.45);
-    let size = 26.0;
-    let t = text(mii_name)
-        .align_x(Alignment::Center)
-        .align_y(Alignment::Center)
-        .width(216)
-        .height(33)
-        .font(CTMKF)
-        .wrapping(text::Wrapping::None)
-        .size(size);
-    positioned(t, 448, 257)
+    let t = FitText {
+        content: mii_name,
+        font: CTMKF,
+        max_size: 26.0,
+        min_size: 8.0,
+        width: 216.0,
+        height: 33.0,
+    };
+
+    positioned(iced::Element::new(t), 448, 257)
 }
 
 pub fn country_element<'a>(ghost: &'a Ghost, handle: &'a svg::Handle) -> Element<'a, Message> {
@@ -435,6 +432,22 @@ pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
         .style(styles::info_box_style());
 
     positioned(mii_info_element, 30, 391) /* 367 with height and weight shown */
+}
+
+pub fn mii_import_button() -> Element<'static, Message> {
+    positioned(
+        ghost_action_button("Import Mii", true, Message::MiiImport),
+        310,
+        480,
+    )
+}
+
+pub fn mii_export_button() -> Element<'static, Message> {
+    positioned(
+        ghost_action_button("Export Mii", true, Message::MiiExport),
+        310,
+        526,
+    )
 }
 
 pub fn date_set_box<'a>(date: &'a Date) -> Element<'a, Message> {

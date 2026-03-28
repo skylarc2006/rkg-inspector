@@ -4,11 +4,16 @@ use iced::widget::image;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    LoadFile,
-    FilePicked(Option<PathBuf>),
+    LoadGhost,
+    GhostDropped(PathBuf),
+    GhostPicked(Option<PathBuf>),
     ToggleEditMenu,
-    SaveAsFile,
-    FileSaved(Option<PathBuf>),
+    SaveGhostAsFile,
+    GhostSaved(Option<PathBuf>),
+    MiiExport,
+    MiiImport,
+    MiiSelected(Option<PathBuf>),
+    MiiSaved(Option<PathBuf>),
     ToggleFooterView,
     MiiHandleLoaded(Option<image::Handle>),
 }

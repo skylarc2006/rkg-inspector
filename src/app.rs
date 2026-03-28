@@ -1,6 +1,7 @@
 use iced::widget::{image, svg};
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
+use rkg_utils::header::mii::Mii;
 
 use crate::files::{pick_file, save_as_file};
 use crate::helpers::*;
@@ -16,6 +17,7 @@ pub struct RkgInspector {
     pub vehicle_handle: Option<image::Handle>,
     pub country_handle: Option<svg::Handle>,
     pub mii_handle: Option<image::Handle>,
+    loading: bool,
 }
 
 impl RkgInspector {
@@ -29,6 +31,7 @@ impl RkgInspector {
             vehicle_handle: None,
             country_handle: None,
             mii_handle: None,
+            loading: false,
         }
     }
 
@@ -40,11 +43,29 @@ impl RkgInspector {
         Theme::Dark
     }
 
+    pub fn subscription(&self) -> iced::Subscription<Message> {
+        iced::event::listen_with(|event, _status, _id| {
+            if let iced::Event::Window(iced::window::Event::FileDropped(path)) = event {
+                Some(Message::GhostDropped(path))
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::LoadFile => Task::perform(pick_file(), Message::FilePicked),
+            Message::LoadGhost => Task::perform(pick_file("Mario Kart Wii ghosts", &["rkg"]), Message::GhostPicked),
 
-            Message::FilePicked(path) => {
+            Message::GhostDropped(path) => {
+                if self.loading {
+                    return Task::none();
+                }
+                self.update(Message::GhostPicked(Some(path)))
+            },
+
+            Message::GhostPicked(path) => {
+                self.loading = true;
                 self.mii_handle = None;
                 self.active_ghost = path.and_then(|p| Ghost::new_from_file(&p).ok());
                 if let Some(ghost) = &self.active_ghost {
@@ -68,18 +89,63 @@ impl RkgInspector {
                     self.vehicle_handle = None;
                     self.country_handle = None;
                     self.mii_handle = None;
+                    self.loading = false;
                     Task::none()
                 }
-            }
+            },
+
+            Message::MiiExport => {
+                if let Some(ghost) = &self.active_ghost {
+                    Task::perform(save_as_file(ghost.header().mii().name().to_string(), "Mii data", &["miigx", "mae", "mii"]), Message::MiiSaved)
+                } else {
+                    Task::none()
+                }
+            },
+
+            Message::MiiImport => {
+                if self.active_ghost.is_some() {
+                    Task::perform(pick_file("Mii data", &["miigx", "mae", "mii", "rkg"]), Message::MiiSelected)
+                } else {
+                    Task::none()
+                }
+            },
+
+            Message::MiiSaved(path) => {
+                if let Some(ghost) = &self.active_ghost {
+                    path.and_then(|p| ghost.header().mii().save_to_file(&p).ok());
+                }
+                Task::none()
+            },
+
+            Message::MiiSelected(path) => {
+                if let Some(ghost) = &mut self.active_ghost {
+                    if let Some(mii) = path.and_then(|p| Mii::new_from_file(&p).ok()) {
+                        ghost.header_mut().set_mii(mii);
+                        self.mii_handle = None;
+                        Task::perform(
+                            image_handles::get_mii_image_handle(
+                                ghost.header().mii().raw_data().to_vec(),
+                            ),
+                            Message::MiiHandleLoaded,
+                        )
+                    } else {
+                        Task::none()
+                    }
+                } else {
+                    Task::none()
+                }
+            },
+
 
             Message::MiiHandleLoaded(mii_handle) => {
                 self.mii_handle = mii_handle;
+                self.loading = false;
                 Task::none()
-            }
+            },
 
             Message::ToggleEditMenu => Task::none(),
 
-            Message::SaveAsFile => {
+            Message::SaveGhostAsFile => {
                 if let Some(ghost) = &self.active_ghost {
                     let finish_time = ghost.header().finish_time();
                     let time = format!(
@@ -93,18 +159,18 @@ impl RkgInspector {
 
                     let default_file_name =
                         format!("{}_{}_{}.rkg", time, track_abbreviation, mii_name);
-                    Task::perform(save_as_file(default_file_name), Message::FileSaved)
+                    Task::perform(save_as_file(default_file_name, "Mario Kart Wii ghosts", &["rkg"]), Message::GhostSaved)
                 } else {
                     Task::none()
                 }
-            }
+            },
 
-            Message::FileSaved(path) => {
+            Message::GhostSaved(path) => {
                 if let Some(ghost) = &mut self.active_ghost {
                     path.and_then(|p| ghost.save_to_file(&p).ok());
                 }
                 Task::none()
-            }
+            },
 
             Message::ToggleFooterView => Task::none(),
         }
@@ -190,6 +256,16 @@ impl RkgInspector {
             .zip(self.mii_handle.as_ref())
             .map(|(_, h)| widgets::mii_image_element(h));
 
+        let mii_import_button = self
+            .active_ghost
+            .as_ref()
+            .and_then(|_| Some(widgets::mii_import_button()));
+
+        let mii_export_button = self
+            .active_ghost
+            .as_ref()
+            .and_then(|_| Some(widgets::mii_export_button()));
+
         let mut s = stack!(
             background,
             prerelease_warning_text,
@@ -215,6 +291,8 @@ impl RkgInspector {
             controller_box,
             external_footer_button,
             mii_image_element,
+            mii_import_button,
+            mii_export_button, 
         ]
         .into_iter()
         .flatten()

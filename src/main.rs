@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use iced::{Size, window};
 
 use crate::app::RkgInspector;
@@ -25,6 +27,7 @@ pub fn main() -> iced::Result {
     })
     .window_size(Size::new(1280.0, 720.0))
     .resizable(false)
+    .subscription(RkgInspector::subscription)
     .font(include_bytes!("../fonts/FOT-RodinNTLG Pro EB.otf").as_slice())
     .font(include_bytes!("../fonts/ctmkf.ttf").as_slice())
     .run()
