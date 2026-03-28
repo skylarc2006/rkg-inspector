@@ -1,8 +1,9 @@
 #![windows_subsystem = "windows"]
 
-use iced::{Size, window};
+use iced::{Size, Task, window};
 
 use crate::app::RkgInspector;
+use crate::message::Message;
 
 pub mod app;
 pub mod files;
@@ -12,8 +13,15 @@ pub mod mii_rendering;
 pub mod ui;
 
 pub fn main() -> iced::Result {
+    let initial_path: Option<std::path::PathBuf> = std::env::args().nth(1).map(Into::into);
+
     iced::application(
-        RkgInspector::default,
+        move || {
+            let task = initial_path.clone()
+                .map(|p| Task::done(Message::GhostPicked(Some(p))))
+                .unwrap_or(Task::none());
+            (RkgInspector::new(), task)
+        },
         RkgInspector::update,
         RkgInspector::view,
     )
