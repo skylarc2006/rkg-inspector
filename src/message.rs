@@ -8,12 +8,12 @@ pub enum Message {
     GhostDropped(PathBuf),
     GhostPicked(Option<PathBuf>),
     ToggleEditMenu,
+    ToggleFooterInfoMenu,
     SaveGhostAsFile,
     GhostSaved(Option<PathBuf>),
     MiiExport,
     MiiImport,
     MiiSelected(Option<PathBuf>),
     MiiSaved(Option<PathBuf>),
-    ToggleFooterView,
     MiiHandleLoaded(Option<image::Handle>),
 }

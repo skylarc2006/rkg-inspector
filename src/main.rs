@@ -17,7 +17,8 @@ pub fn main() -> iced::Result {
 
     iced::application(
         move || {
-            let task = initial_path.clone()
+            let task = initial_path
+                .clone()
                 .map(|p| Task::done(Message::GhostPicked(Some(p))))
                 .unwrap_or(Task::none());
             (RkgInspector::new(), task)

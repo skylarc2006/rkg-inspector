@@ -5,10 +5,10 @@ use iced::{
 
 pub mod assets;
 pub mod constants;
+pub mod fit_text;
 pub mod image_handles;
 pub mod styles;
 pub mod widgets;
-pub mod fit_text;
 
 pub fn empty_height(height: u32) -> Space {
     Space::new().height(height)

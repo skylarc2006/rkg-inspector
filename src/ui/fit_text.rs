@@ -1,12 +1,10 @@
 use iced::{
     Length, Rectangle,
     advanced::{
-        Layout, layout, renderer,
-        text as adv_text,
+        Layout, layout, renderer, text as adv_text,
         widget::{self, Widget},
     },
 };
-
 
 pub struct FitText<'a> {
     pub content: &'a str,
@@ -54,9 +52,7 @@ where
     }
 
     fn state(&self) -> widget::tree::State {
-        widget::tree::State::new(
-            adv_text::paragraph::Plain::<Renderer::Paragraph>::default(),
-        )
+        widget::tree::State::new(adv_text::paragraph::Plain::<Renderer::Paragraph>::default())
     }
 
     fn size(&self) -> iced::Size<Length> {

@@ -15,7 +15,9 @@ use crate::{
     helpers::favorite_color_string,
     message::Message,
     ui::{
-        constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION}, fit_text::FitText, positioned, styles
+        constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
+        fit_text::FitText,
+        positioned, styles,
     },
 };
 
@@ -43,6 +45,10 @@ pub fn background(
     let background_image = image(background_handle).scale(1.0);
     let ghost_box: Image = image(ghost_box_handle).scale(0.5);
     stack!(background_image, ghost_box).into()
+}
+
+pub fn info_background(info_background_handle: image::Handle) -> Element<'static, Message> {
+    image(info_background_handle).scale(0.85).into()
 }
 
 pub fn prerelease_warning_text() -> Element<'static, Message> {
@@ -98,6 +104,32 @@ pub fn save_as_button(ghost_is_loaded: bool) -> Element<'static, Message> {
         807,
         80,
     )
+}
+
+pub fn close_edit_button() -> Element<'static, Message> {
+    let btn = button(text("Close").font(RODIN_NTLG_PRO_EB).size(28).center())
+        .width(COMMON_BUTTON_WIDTH as f32 * 1.5)
+        .height(COMMON_BUTTON_HEIGHT as f32 * 1.5)
+        .on_press(Message::ToggleEditMenu)
+        .style(|_, status| match status {
+            button::Status::Hovered => styles::hovered_button_style(),
+            _ => styles::common_button_style(),
+        });
+
+    positioned(btn, 892, 551)
+}
+
+pub fn close_footer_info_button() -> Element<'static, Message> {
+    let btn = button(text("Close").font(RODIN_NTLG_PRO_EB).size(28).center())
+        .width(COMMON_BUTTON_WIDTH as f32 * 1.5)
+        .height(COMMON_BUTTON_HEIGHT as f32 * 1.5)
+        .on_press(Message::ToggleFooterInfoMenu)
+        .style(|_, status| match status {
+            button::Status::Hovered => styles::hovered_button_style(),
+            _ => styles::common_button_style(),
+        });
+
+    positioned(btn, 892, 551)
 }
 
 pub fn track_name_text(slot_id: SlotId) -> Element<'static, Message> {
@@ -516,7 +548,7 @@ pub fn external_footer_button<'a>(ghost: &'a Ghost) -> Option<Element<'a, Messag
     let btn = button(text(label).font(RODIN_NTLG_PRO_EB).size(16).center())
         .width(263)
         .height(COMMON_BUTTON_HEIGHT)
-        .on_press(Message::ToggleFooterView)
+        .on_press(Message::ToggleFooterInfoMenu)
         .style(|_, status| match status {
             button::Status::Hovered => styles::hovered_button_style(),
             _ => styles::common_button_style(),
@@ -533,9 +565,7 @@ pub fn mii_image_element<'a>(handle: &'a image::Handle) -> Element<'a, Message> 
         y: 0,
     };
 
-    let img = image(handle)
-        .crop(crop)
-        .width(115);
+    let img = image(handle).crop(crop).width(115);
 
     positioned(img, 345, 234)
 }

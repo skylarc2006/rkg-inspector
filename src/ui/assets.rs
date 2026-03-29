@@ -1,5 +1,6 @@
 pub const BACKGROUND: &[u8] = include_bytes!("../../images/background.png").as_slice();
 pub const GHOST_BOX: &[u8] = include_bytes!("../../images/ghost_box.png").as_slice();
+pub const INFO_BACKGROUND: &[u8] = include_bytes!("../../images/info_background.png").as_slice();
 
 pub const FLAG_AD: &[u8] = include_bytes!("../../images/countryflags/ad.svg").as_slice();
 pub const FLAG_AE: &[u8] = include_bytes!("../../images/countryflags/ae.svg").as_slice();
