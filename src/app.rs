@@ -1,11 +1,13 @@
 use iced::widget::{image, svg};
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
+use rkg_utils::footer::FooterType;
 use rkg_utils::header::mii::Mii;
 
 use crate::files::{pick_file, save_as_file};
 use crate::helpers::*;
 use crate::message::Message;
+use crate::ui::footer_tab::FooterTab;
 use crate::ui::{assets, image_handles, widgets};
 
 pub struct RkgInspector {
@@ -20,6 +22,7 @@ pub struct RkgInspector {
     pub country_handle: Option<svg::Handle>,
     pub mii_handle: Option<image::Handle>,
     pub loading: bool,
+    pub active_footer_tab: FooterTab,
 }
 
 impl RkgInspector {
@@ -36,6 +39,7 @@ impl RkgInspector {
             country_handle: None,
             mii_handle: None,
             loading: false,
+            active_footer_tab: FooterTab::CtgpIdentity,
         }
     }
 
@@ -87,6 +91,18 @@ impl RkgInspector {
                     self.country_handle = Some(image_handles::get_country_image_handle(
                         ghost.header().location().country(),
                     ));
+
+                    if let Some(footer) = ghost.footer() {
+                        match footer {
+                            FooterType::CTGPFooter(_) => {
+                                self.active_footer_tab = FooterTab::CtgpIdentity;
+                            }
+                            FooterType::SPFooter(_) => {
+                                self.active_footer_tab = FooterTab::SpIdentity;
+                            }
+                        }
+                    }
+
                     Task::perform(
                         image_handles::get_mii_image_handle(
                             ghost.header().mii().raw_data().to_vec(),
@@ -168,6 +184,11 @@ impl RkgInspector {
 
             Message::ToggleFooterInfoMenu => {
                 self.footer_info_menu_active = !self.footer_info_menu_active;
+                Task::none()
+            }
+
+            Message::SetActiveFooterTab(footer_tab) => {
+                self.active_footer_tab = footer_tab;
                 Task::none()
             }
 
@@ -287,22 +308,12 @@ impl RkgInspector {
         let mii_import_button = self
             .active_ghost
             .as_ref()
-            .and_then(|_| Some(widgets::mii_import_button()));
+            .map(|_| widgets::mii_import_button());
 
         let mii_export_button = self
             .active_ghost
             .as_ref()
-            .and_then(|_| Some(widgets::mii_export_button()));
-
-        let close_edit_button = self
-            .active_ghost
-            .as_ref()
-            .and_then(|_| Some(widgets::close_edit_button()));
-
-        let close_footer_info_button = self
-            .active_ghost
-            .as_ref()
-            .and_then(|_| Some(widgets::close_footer_info_button()));
+            .map(|_| widgets::mii_export_button());
 
         if self.footer_info_menu_active || self.edit_menu_active {
             let mut s = stack!(
@@ -317,17 +328,59 @@ impl RkgInspector {
             let mut elements = Vec::new();
 
             if self.edit_menu_active {
+                let close_edit_button = self
+                    .active_ghost
+                    .as_ref()
+                    .map(|_| widgets::close_edit_button());
+
                 elements.push(close_edit_button);
             }
 
             if self.footer_info_menu_active {
+                if let Some(ghost) = &self.active_ghost
+                    && let Some(footer) = ghost.footer()
+                {
+                    match footer {
+                        FooterType::CTGPFooter(_) => {
+                            let ctgp_footer_identity_button =
+                                Some(widgets::ctgp_footer_identity_button(
+                                    self.active_footer_tab == FooterTab::CtgpIdentity,
+                                ));
+
+                            let ctgp_footer_time_info_button =
+                                Some(widgets::ctgp_footer_time_info_button(
+                                    self.active_footer_tab == FooterTab::CtgpTimeInfo,
+                                ));
+
+                            let ctgp_footer_race_events_button =
+                                Some(widgets::ctgp_footer_race_events_button(
+                                    self.active_footer_tab == FooterTab::CtgpRaceEvents,
+                                ));
+
+                            elements.push(ctgp_footer_identity_button);
+                            elements.push(ctgp_footer_time_info_button);
+                            elements.push(ctgp_footer_race_events_button);
+                        }
+
+                        FooterType::SPFooter(_) => (),
+                    }
+                };
+
+                let footer_info_text = self
+                    .active_ghost
+                    .as_ref()
+                    .map(|g| widgets::footer_info_text(self.active_footer_tab, g));
+
+                let close_footer_info_button = self
+                    .active_ghost
+                    .as_ref()
+                    .map(|_| widgets::close_footer_info_button());
+
+                elements.push(footer_info_text);
                 elements.push(close_footer_info_button);
             }
-                
-            for elem in elements
-            .into_iter()
-            .flatten()
-            {
+
+            for elem in elements.into_iter().flatten() {
                 s = s.push(elem);
             }
             s.into()

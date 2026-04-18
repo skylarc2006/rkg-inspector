@@ -1,4 +1,7 @@
-use rkg_utils::header::{mii::favorite_color::FavoriteColor, slot_id::SlotId};
+use rkg_utils::{
+    footer::ctgp_footer::region::Region,
+    header::{mii::favorite_color::FavoriteColor, slot_id::SlotId},
+};
 
 pub fn track_abbreviation(slot_id: SlotId) -> String {
     match slot_id {
@@ -9,45 +12,45 @@ pub fn track_abbreviation(slot_id: SlotId) -> String {
         SlotId::MarioCircuit => String::from("MC"),
         SlotId::CoconutMall => String::from("CM"),
         SlotId::DKSnowboardCross => String::from("DKSC"),
-        SlotId::WariosGoldMine => String::from(String::from("WGM")),
-        SlotId::DaisyCircuit => String::from(String::from("DC")),
-        SlotId::KoopaCape => String::from(String::from("KC")),
-        SlotId::MapleTreeway => String::from(String::from("MT")),
-        SlotId::GrumbleVolcano => String::from(String::from("GV")),
-        SlotId::DryDryRuins => String::from(String::from("DDR")),
-        SlotId::MoonviewHighway => String::from(String::from("MH")),
-        SlotId::BowsersCastle => String::from(String::from("BC")),
-        SlotId::RainbowRoad => String::from(String::from("RR")),
-        SlotId::GCNPeachBeach => String::from(String::from("rPB")),
-        SlotId::DSYoshiFalls => String::from(String::from("rYF")),
-        SlotId::SNESGhostValley2 => String::from(String::from("rGV2")),
-        SlotId::N64MarioRaceway => String::from(String::from("rMR")),
-        SlotId::N64SherbetLand => String::from(String::from("rSL")),
-        SlotId::GBAShyGuyBeach => String::from(String::from("rSGB")),
-        SlotId::DSDelfinoSquare => String::from(String::from("rDS")),
-        SlotId::GCNWaluigiStadium => String::from(String::from("rWS")),
-        SlotId::DSDesertHills => String::from(String::from("rDH")),
-        SlotId::GBABowserCastle3 => String::from(String::from("rBC3")),
-        SlotId::N64DKJungleParkway => String::from(String::from("rDKJP")),
-        SlotId::GCNMarioCircuit => String::from(String::from("rMC")),
-        SlotId::SNESMarioCircuit3 => String::from(String::from("rMC3")),
-        SlotId::DSPeachGardens => String::from(String::from("rPG")),
-        SlotId::GCNDKMountain => String::from(String::from("rDKM")),
-        SlotId::N64BowsersCastle => String::from(String::from("rBC")),
-        SlotId::BlockPlaza => String::from(String::from("bBP")),
-        SlotId::DelfinoPier => String::from(String::from("bDP")),
-        SlotId::FunkyStadium => String::from(String::from("bFS")),
-        SlotId::ChainChompWheel => String::from(String::from("bCCW")),
-        SlotId::ThwompDesert => String::from(String::from("bTD")),
-        SlotId::SNESBattleCourse4 => String::from(String::from("brBC4")),
-        SlotId::GBABattleCourse3 => String::from(String::from("brBC3")),
-        SlotId::N64Skscraper => String::from(String::from("brS")),
-        SlotId::GCNCookieLand => String::from(String::from("brCL")),
-        SlotId::DSTwilightHouse => String::from(String::from("brTH")),
-        SlotId::GalaxyColosseum => String::from(String::from("GC")),
-        SlotId::WinningScene => String::from(String::from("WS")),
-        SlotId::LosingScene => String::from(String::from("LS")),
-        SlotId::Credits => String::from(String::from("C")),
+        SlotId::WariosGoldMine => String::from("WGM"),
+        SlotId::DaisyCircuit => String::from("DC"),
+        SlotId::KoopaCape => String::from("KC"),
+        SlotId::MapleTreeway => String::from("MT"),
+        SlotId::GrumbleVolcano => String::from("GV"),
+        SlotId::DryDryRuins => String::from("DDR"),
+        SlotId::MoonviewHighway => String::from("MH"),
+        SlotId::BowsersCastle => String::from("BC"),
+        SlotId::RainbowRoad => String::from("RR"),
+        SlotId::GCNPeachBeach => String::from("rPB"),
+        SlotId::DSYoshiFalls => String::from("rYF"),
+        SlotId::SNESGhostValley2 => String::from("rGV2"),
+        SlotId::N64MarioRaceway => String::from("rMR"),
+        SlotId::N64SherbetLand => String::from("rSL"),
+        SlotId::GBAShyGuyBeach => String::from("rSGB"),
+        SlotId::DSDelfinoSquare => String::from("rDS"),
+        SlotId::GCNWaluigiStadium => String::from("rWS"),
+        SlotId::DSDesertHills => String::from("rDH"),
+        SlotId::GBABowserCastle3 => String::from("rBC3"),
+        SlotId::N64DKJungleParkway => String::from("rDKJP"),
+        SlotId::GCNMarioCircuit => String::from("rMC"),
+        SlotId::SNESMarioCircuit3 => String::from("rMC3"),
+        SlotId::DSPeachGardens => String::from("rPG"),
+        SlotId::GCNDKMountain => String::from("rDKM"),
+        SlotId::N64BowsersCastle => String::from("rBC"),
+        SlotId::BlockPlaza => String::from("bBP"),
+        SlotId::DelfinoPier => String::from("bDP"),
+        SlotId::FunkyStadium => String::from("bFS"),
+        SlotId::ChainChompWheel => String::from("bCCW"),
+        SlotId::ThwompDesert => String::from("bTD"),
+        SlotId::SNESBattleCourse4 => String::from("brBC4"),
+        SlotId::GBABattleCourse3 => String::from("brBC3"),
+        SlotId::N64Skscraper => String::from("brS"),
+        SlotId::GCNCookieLand => String::from("brCL"),
+        SlotId::DSTwilightHouse => String::from("brTH"),
+        SlotId::GalaxyColosseum => String::from("GC"),
+        SlotId::WinningScene => String::from("WS"),
+        SlotId::LosingScene => String::from("LS"),
+        SlotId::Credits => String::from("C"),
     }
 }
 
@@ -65,5 +68,23 @@ pub fn favorite_color_string(f: FavoriteColor) -> String {
         FavoriteColor::Brown => String::from("Brown"),
         FavoriteColor::White => String::from("White"),
         FavoriteColor::Black => String::from("Black"),
+    }
+}
+
+pub fn array_to_hex_string(arr: &[u8]) -> String {
+    use std::fmt::Write;
+    let mut s = String::with_capacity(arr.len() * 2);
+    for byte in arr {
+        write!(s, "{:02X}", byte).unwrap();
+    }
+    s
+}
+
+pub fn disc_region_string(disc_region: &Region) -> &str {
+    match disc_region {
+        Region::NtscU => "E (NTSC-U)",
+        Region::Pal => "P (PAL)",
+        Region::NtscJ => "J (NTSC-J)",
+        Region::Unknown => "Unknown/invalid",
     }
 }

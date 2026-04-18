@@ -6,6 +6,7 @@ use iced::{
 pub mod assets;
 pub mod constants;
 pub mod fit_text;
+pub mod footer_tab;
 pub mod image_handles;
 pub mod styles;
 pub mod widgets;

@@ -4,7 +4,7 @@ use iced::{
 };
 use rkg_utils::{
     Ghost,
-    footer::FooterType,
+    footer::{FooterType, ctgp_footer},
     header::{
         controller::Controller, date::Date, in_game_time::InGameTime, mii::Mii, slot_id::SlotId,
     },
@@ -12,11 +12,12 @@ use rkg_utils::{
 use std::time::Duration;
 
 use crate::{
-    helpers::favorite_color_string,
+    helpers::{array_to_hex_string, disc_region_string, favorite_color_string},
     message::Message,
     ui::{
         constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
         fit_text::FitText,
+        footer_tab::FooterTab,
         positioned, styles,
     },
 };
@@ -119,6 +120,50 @@ pub fn close_edit_button() -> Element<'static, Message> {
     positioned(btn, 892, 551)
 }
 
+pub fn ctgp_footer_identity_button(is_active: bool) -> Element<'static, Message> {
+    let btn = button(text("Identity").font(RODIN_NTLG_PRO_EB).size(28).center())
+        .width(COMMON_BUTTON_WIDTH as f32 * 1.25)
+        .height(COMMON_BUTTON_HEIGHT as f32 * 1.25)
+        .on_press(Message::SetActiveFooterTab(FooterTab::CtgpIdentity))
+        .style(move |_, status| match status {
+            button::Status::Hovered => styles::hovered_red_green_button_style(is_active),
+            _ => styles::red_green_button_style(is_active),
+        });
+
+    positioned(btn, 170, 115)
+}
+
+pub fn ctgp_footer_time_info_button(is_active: bool) -> Element<'static, Message> {
+    let btn = button(text("Time").font(RODIN_NTLG_PRO_EB).size(28).center())
+        .width(COMMON_BUTTON_WIDTH as f32 * 1.25)
+        .height(COMMON_BUTTON_HEIGHT as f32 * 1.25)
+        .on_press(Message::SetActiveFooterTab(FooterTab::CtgpTimeInfo))
+        .style(move |_, status| match status {
+            button::Status::Hovered => styles::hovered_red_green_button_style(is_active),
+            _ => styles::red_green_button_style(is_active),
+        });
+
+    positioned(btn, 375, 115)
+}
+
+pub fn ctgp_footer_race_events_button(is_active: bool) -> Element<'static, Message> {
+    let btn = button(
+        text("Race Events")
+            .font(RODIN_NTLG_PRO_EB)
+            .size(22)
+            .center(),
+    )
+    .width(COMMON_BUTTON_WIDTH as f32 * 1.25)
+    .height(COMMON_BUTTON_HEIGHT as f32 * 1.25)
+    .on_press(Message::SetActiveFooterTab(FooterTab::CtgpRaceEvents))
+    .style(move |_, status| match status {
+        button::Status::Hovered => styles::hovered_red_green_button_style(is_active),
+        _ => styles::red_green_button_style(is_active),
+    });
+
+    positioned(btn, 580, 115)
+}
+
 pub fn close_footer_info_button() -> Element<'static, Message> {
     let btn = button(text("Close").font(RODIN_NTLG_PRO_EB).size(28).center())
         .width(COMMON_BUTTON_WIDTH as f32 * 1.5)
@@ -130,6 +175,65 @@ pub fn close_footer_info_button() -> Element<'static, Message> {
         });
 
     positioned(btn, 892, 551)
+}
+
+pub fn footer_info_text<'a>(
+    active_footer_tab: FooterTab,
+    ghost: &'a Ghost,
+) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut footer_info_view = stack!();
+
+    if let Some(footer) = &ghost.footer() {
+        match footer {
+            &FooterType::CTGPFooter(ctgp_footer) => match active_footer_tab {
+                FooterTab::CtgpIdentity => {
+                    let mut footer_info_text = String::new();
+                    write!(footer_info_text, "Footer version: {}", ctgp_footer.footer_version()).unwrap();
+                    write!(footer_info_text, "\nTrack SHA1: {}", array_to_hex_string(ctgp_footer.track_sha1())).unwrap();
+                    write!(footer_info_text, "\nPlayer ID: {}", array_to_hex_string(&ctgp_footer.player_id().to_be_bytes())).unwrap();
+
+                    if let Some(disc_region) = &ctgp_footer.disc_region() {
+                        write!(footer_info_text, "\nDisc region: {}", disc_region_string(disc_region)).unwrap();
+                    }
+
+                    write!(footer_info_text, "\n\nCategory: {}", ctgp_footer.category()).unwrap();
+                    write!(footer_info_text, "\n\nCTGP CORE version: {}", ctgp_footer.core_version()).unwrap();
+
+                    let ctgp_versions_opt = ctgp_footer.possible_ctgp_versions();
+                    let release_versions = if let Some(ctgp_versions) = &ctgp_versions_opt {
+                        if ctgp_versions.len() == 1 {
+                            format!("{}", ctgp_versions[0])
+                        } else {
+                            format!("{} - {}", ctgp_versions[0], ctgp_versions[ctgp_versions.len() - 1])
+                        }
+                    } else {
+                        "Unknown".to_string()
+                    };
+
+                    write!(footer_info_text, "\nPossible CTGP release versions: {}", release_versions).unwrap();
+
+                    let footer_info_text = text(footer_info_text)
+                        .color(Color::from_rgba8(128, 128, 128, 1.0))
+                        .align_x(Alignment::Start)
+                        .align_y(Alignment::Start)
+                        .width(930)
+                        .font(RODIN_NTLG_PRO_EB)
+                        .size(26);
+
+                    footer_info_view = footer_info_view.push(positioned(footer_info_text, 170, 185));
+                }
+
+                _ => (),
+            },
+
+            &FooterType::SPFooter(sp_footer) => match active_footer_tab {
+                _ => (),
+            },
+        }
+    }
+
+    footer_info_view.into()
 }
 
 pub fn track_name_text(slot_id: SlotId) -> Element<'static, Message> {
@@ -227,110 +331,42 @@ pub fn vehicle_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Eleme
 }
 
 pub fn lap_splits_box<'a>(lap_splits: &[InGameTime]) -> Element<'a, Message> {
-    let mut lap_splits_text = format!("Lap 1:   {}", lap_splits[0].to_string());
+    use std::fmt::Write;
+    let mut lap_splits_text = format!("Lap 1:   {}", lap_splits[0]);
 
     for (idx, lap) in lap_splits[1..].iter().enumerate() {
-        lap_splits_text += format!(
+        write!(
+            lap_splits_text,
             "\nLap {}:{}{}",
             idx + 2,
             if idx + 2 < 10 { "   " } else { " " },
-            lap.to_string()
+            lap
         )
-        .as_str();
+        .unwrap();
     }
 
     // adjust lap split box size based on number of laps
-    match lap_splits.len() {
-        1 | 2 | 3 | 4 | 5 | 6 => {
-            let lap_splits_element = container(
-                text(lap_splits_text)
-                    .font(RODIN_NTLG_PRO_EB)
-                    .align_x(Alignment::End)
-                    .align_y(Alignment::Center)
-                    .color(Color::WHITE)
-                    .size(25.5),
-            )
-            .padding(10)
-            .style(styles::info_box_style());
+    let (size, x_offset): (f32, u32) = match lap_splits.len() {
+        1..=6 => (25.5, 30),
+        7     => (21.9, 66),
+        8     => (19.1, 94),
+        9     => (17.05, 114),
+        10    => (15.3, 132),
+        _     => (13.95, 145),
+    };
 
-            positioned(lap_splits_element, 30, 135)
-        }
+    let lap_splits_element = container(
+        text(lap_splits_text)
+            .font(RODIN_NTLG_PRO_EB)
+            .align_x(Alignment::End)
+            .align_y(Alignment::Center)
+            .color(Color::WHITE)
+            .size(size),
+    )
+    .padding(10)
+    .style(styles::info_box_style());
 
-        7 => {
-            let lap_splits_element = container(
-                text(lap_splits_text)
-                    .font(RODIN_NTLG_PRO_EB)
-                    .align_x(Alignment::End)
-                    .align_y(Alignment::Center)
-                    .color(Color::WHITE)
-                    .size(21.9),
-            )
-            .padding(10)
-            .style(styles::info_box_style());
-
-            positioned(lap_splits_element, 66, 135)
-        }
-
-        8 => {
-            let lap_splits_element = container(
-                text(lap_splits_text)
-                    .font(RODIN_NTLG_PRO_EB)
-                    .align_x(Alignment::End)
-                    .align_y(Alignment::Center)
-                    .color(Color::WHITE)
-                    .size(19.1),
-            )
-            .padding(10)
-            .style(styles::info_box_style());
-
-            positioned(lap_splits_element, 94, 135)
-        }
-
-        9 => {
-            let lap_splits_element = container(
-                text(lap_splits_text)
-                    .font(RODIN_NTLG_PRO_EB)
-                    .align_x(Alignment::End)
-                    .align_y(Alignment::Center)
-                    .color(Color::WHITE)
-                    .size(17.05),
-            )
-            .padding(10)
-            .style(styles::info_box_style());
-
-            positioned(lap_splits_element, 114, 135)
-        }
-
-        10 => {
-            let lap_splits_element = container(
-                text(lap_splits_text)
-                    .font(RODIN_NTLG_PRO_EB)
-                    .align_x(Alignment::End)
-                    .align_y(Alignment::Center)
-                    .color(Color::WHITE)
-                    .size(15.3),
-            )
-            .padding(10)
-            .style(styles::info_box_style());
-
-            positioned(lap_splits_element, 132, 135)
-        }
-
-        _ => {
-            let lap_splits_element = container(
-                text(lap_splits_text)
-                    .font(RODIN_NTLG_PRO_EB)
-                    .align_x(Alignment::End)
-                    .align_y(Alignment::Center)
-                    .color(Color::WHITE)
-                    .size(13.95),
-            )
-            .padding(10)
-            .style(styles::info_box_style());
-
-            positioned(lap_splits_element, 145, 135)
-        }
-    }
+    positioned(lap_splits_element, x_offset, 135)
 }
 
 pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
@@ -386,7 +422,7 @@ pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
             .font(CTMKF)
             .color(Color::WHITE)
             .size(font_size * 1.5),
-        text(if mii.creator_name() != "" {
+        text(if !mii.creator_name().is_empty() {
             mii.creator_name()
         } else {
             "—"
