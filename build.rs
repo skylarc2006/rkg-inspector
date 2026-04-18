@@ -1,3 +1,4 @@
+#[cfg(windows)]
 fn main() {
     if std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default() == "windows" {
         let mut res = winres::WindowsResource::new();
@@ -5,3 +6,6 @@ fn main() {
         res.compile().expect("Failed to compile Windows resource");
     }
 }
+
+#[cfg(not(windows))]
+fn main() {}
