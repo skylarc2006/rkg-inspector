@@ -1,4 +1,4 @@
-use iced::widget::{image, svg};
+use iced::widget::{image, svg, text_editor};
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
 use rkg_utils::footer::FooterType;
@@ -23,6 +23,8 @@ pub struct RkgInspector {
     pub mii_handle: Option<image::Handle>,
     pub loading: bool,
     pub active_footer_tab: FooterTab,
+    pub ctgp_identity_content: Option<text_editor::Content>,
+    pub sp_identity_content: Option<text_editor::Content>,
 }
 
 impl RkgInspector {
@@ -40,6 +42,8 @@ impl RkgInspector {
             mii_handle: None,
             loading: false,
             active_footer_tab: FooterTab::CtgpIdentity,
+            ctgp_identity_content: None,
+            sp_identity_content: None,
         }
     }
 
@@ -94,13 +98,19 @@ impl RkgInspector {
 
                     if let Some(footer) = ghost.footer() {
                         match footer {
-                            FooterType::CTGPFooter(_) => {
+                            FooterType::CTGPFooter(ctgp_footer) => {
                                 self.active_footer_tab = FooterTab::CtgpIdentity;
+                                self.ctgp_identity_content = Some(text_editor::Content::with_text(
+                                    &widgets::build_ctgp_identity_text(ctgp_footer),
+                                ));
                             }
                             FooterType::SPFooter(_) => {
                                 self.active_footer_tab = FooterTab::SpIdentity;
+                                self.ctgp_identity_content = None;
                             }
                         }
+                    } else {
+                        self.ctgp_identity_content = None;
                     }
 
                     Task::perform(
@@ -189,6 +199,15 @@ impl RkgInspector {
 
             Message::SetActiveFooterTab(footer_tab) => {
                 self.active_footer_tab = footer_tab;
+                Task::none()
+            }
+
+            Message::CtgpIdentityTextAction(action) => {
+                if let Some(content) = &mut self.ctgp_identity_content {
+                    if !matches!(action, text_editor::Action::Edit(_)) {
+                        content.perform(action);
+                    }
+                }
                 Task::none()
             }
 
@@ -369,7 +388,7 @@ impl RkgInspector {
                 let footer_info_text = self
                     .active_ghost
                     .as_ref()
-                    .map(|g| widgets::footer_info_text(self.active_footer_tab, g));
+                    .map(|g| widgets::footer_info_text(self.active_footer_tab, g, self.ctgp_identity_content.as_ref()));
 
                 let close_footer_info_button = self
                     .active_ghost

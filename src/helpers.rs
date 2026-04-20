@@ -3,6 +3,7 @@ use rkg_utils::{
     header::{mii::favorite_color::FavoriteColor, slot_id::SlotId},
 };
 
+
 pub fn track_abbreviation(slot_id: SlotId) -> String {
     match slot_id {
         SlotId::LuigiCircuit => String::from("LC"),

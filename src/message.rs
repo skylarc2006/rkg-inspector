@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use iced::widget::image;
+use iced::widget::{image, text_editor};
 
 use crate::ui::footer_tab::FooterTab;
 
@@ -19,4 +19,5 @@ pub enum Message {
     MiiSaved(Option<PathBuf>),
     MiiHandleLoaded(Option<image::Handle>),
     SetActiveFooterTab(FooterTab),
+    CtgpIdentityTextAction(text_editor::Action),
 }

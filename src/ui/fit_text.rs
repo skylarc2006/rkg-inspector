@@ -6,8 +6,8 @@ use iced::{
     },
 };
 
-pub struct FitText<'a> {
-    pub content: &'a str,
+pub struct FitText {
+    pub content: String,
     pub font: iced::Font,
     pub max_size: f32,
     pub min_size: f32,
@@ -15,7 +15,7 @@ pub struct FitText<'a> {
     pub height: f32,
 }
 
-impl<'a> FitText<'a> {
+impl FitText {
     pub fn fit_size<R>(&self) -> f32
     where
         R: adv_text::Renderer<Font = iced::Font>,
@@ -24,7 +24,7 @@ impl<'a> FitText<'a> {
         let mut size = self.max_size;
         while size > self.min_size {
             let paragraph = <R::Paragraph as adv_text::Paragraph>::with_text(adv_text::Text {
-                content: self.content,
+                content: &self.content,
                 bounds: iced::Size::new(self.width, f32::INFINITY),
                 size: iced::Pixels(size),
                 font: self.font,
@@ -43,7 +43,7 @@ impl<'a> FitText<'a> {
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for FitText<'a>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for FitText
 where
     Renderer: adv_text::Renderer<Font = iced::Font>,
 {
@@ -72,7 +72,7 @@ where
         let size = self.fit_size::<Renderer>();
 
         state.update(adv_text::Text {
-            content: self.content,
+            content: &self.content,
             bounds: iced::Size::new(self.width, self.height),
             size: iced::Pixels(size),
             font: self.font,

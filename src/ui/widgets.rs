@@ -1,10 +1,9 @@
 use iced::{
-    Alignment, Color, Element, Length, Rectangle,
-    widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip},
+    Alignment, Background, Color, Element, Length, Rectangle, widget::{Button, Image, button, column, container, image, row, stack, svg, text, text_editor, tooltip}
 };
 use rkg_utils::{
     Ghost,
-    footer::{FooterType, ctgp_footer},
+    footer::{FooterType, ctgp_footer::CTGPFooter},
     header::{
         controller::Controller, date::Date, in_game_time::InGameTime, mii::Mii, slot_id::SlotId,
     },
@@ -180,54 +179,23 @@ pub fn close_footer_info_button() -> Element<'static, Message> {
 pub fn footer_info_text<'a>(
     active_footer_tab: FooterTab,
     ghost: &'a Ghost,
+    ctgp_identity_content: Option<&'a text_editor::Content>,
 ) -> Element<'a, Message> {
-    use std::fmt::Write;
     let mut footer_info_view = stack!();
 
     if let Some(footer) = &ghost.footer() {
         match footer {
-            &FooterType::CTGPFooter(ctgp_footer) => match active_footer_tab {
+            &FooterType::CTGPFooter(_) => match active_footer_tab {
                 FooterTab::CtgpIdentity => {
-                    let mut footer_info_text = String::new();
-                    write!(footer_info_text, "Footer version: {}", ctgp_footer.footer_version()).unwrap();
-                    write!(footer_info_text, "\nTrack SHA1: {}", array_to_hex_string(ctgp_footer.track_sha1())).unwrap();
-                    write!(footer_info_text, "\nPlayer ID: {}", array_to_hex_string(&ctgp_footer.player_id().to_be_bytes())).unwrap();
-
-                    if let Some(disc_region) = &ctgp_footer.disc_region() {
-                        write!(footer_info_text, "\nDisc region: {}", disc_region_string(disc_region)).unwrap();
+                    if let Some(content) = ctgp_identity_content {
+                        footer_info_view = footer_info_view.push(get_ctgp_identity_element(content));
                     }
-
-                    write!(footer_info_text, "\n\nCategory: {}", ctgp_footer.category()).unwrap();
-                    write!(footer_info_text, "\n\nCTGP CORE version: {}", ctgp_footer.core_version()).unwrap();
-
-                    let ctgp_versions_opt = ctgp_footer.possible_ctgp_versions();
-                    let release_versions = if let Some(ctgp_versions) = &ctgp_versions_opt {
-                        if ctgp_versions.len() == 1 {
-                            format!("{}", ctgp_versions[0])
-                        } else {
-                            format!("{} - {}", ctgp_versions[0], ctgp_versions[ctgp_versions.len() - 1])
-                        }
-                    } else {
-                        "Unknown".to_string()
-                    };
-
-                    write!(footer_info_text, "\nPossible CTGP release versions: {}", release_versions).unwrap();
-
-                    let footer_info_text = text(footer_info_text)
-                        .color(Color::from_rgba8(128, 128, 128, 1.0))
-                        .align_x(Alignment::Start)
-                        .align_y(Alignment::Start)
-                        .width(930)
-                        .font(RODIN_NTLG_PRO_EB)
-                        .size(26);
-
-                    footer_info_view = footer_info_view.push(positioned(footer_info_text, 170, 185));
                 }
 
                 _ => (),
             },
 
-            &FooterType::SPFooter(sp_footer) => match active_footer_tab {
+            &FooterType::SPFooter(_sp_footer) => match active_footer_tab {
                 _ => (),
             },
         }
@@ -236,14 +204,65 @@ pub fn footer_info_text<'a>(
     footer_info_view.into()
 }
 
-pub fn track_name_text(slot_id: SlotId) -> Element<'static, Message> {
-    let t = text(slot_id.to_string())
-        .align_x(Alignment::Center)
-        .align_y(Alignment::Center)
-        .width(548)
+pub fn build_ctgp_identity_text(ctgp_footer: &CTGPFooter) -> String {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "Footer version: {}", ctgp_footer.footer_version()).unwrap();
+    write!(s, "\nTrack SHA1: {}", array_to_hex_string(ctgp_footer.track_sha1())).unwrap();
+    write!(s, "\nGhost SHA1: {}", array_to_hex_string(ctgp_footer.ghost_sha1())).unwrap();
+    write!(s, "\nPlayer ID: {}", array_to_hex_string(&ctgp_footer.player_id().to_be_bytes())).unwrap();
+
+    if let Some(disc_region) = &ctgp_footer.disc_region() {
+        write!(s, "\nDisc region: {}", disc_region_string(disc_region)).unwrap();
+    }
+
+    write!(s, "\n\nCategory: {}", ctgp_footer.category()).unwrap();
+    write!(s, "\n\nCTGP CORE version: {}", ctgp_footer.core_version()).unwrap();
+
+    let ctgp_versions_opt = ctgp_footer.possible_ctgp_versions();
+    let release_versions = if let Some(ctgp_versions) = &ctgp_versions_opt {
+        if ctgp_versions.len() == 1 {
+            format!("{}", ctgp_versions[0])
+        } else {
+            format!("{} - {}", ctgp_versions[0], ctgp_versions[ctgp_versions.len() - 1])
+        }
+    } else {
+        "Unknown".to_string()
+    };
+
+    write!(s, "\nPossible CTGP release versions: {}", release_versions).unwrap();
+    s
+}
+
+pub fn get_ctgp_identity_element<'a>(content: &'a text_editor::Content) -> Element<'a, Message> {
+    let editor = text_editor(content)
+        .on_action(Message::CtgpIdentityTextAction)
         .font(RODIN_NTLG_PRO_EB)
-        .size(32);
-    positioned(t, 365, 154)
+        .size(25)
+        .width(930)
+        .height(400)
+        .style(|_, _| text_editor::Style {
+            background: Background::Color(Color::TRANSPARENT),
+            border: iced::Border::default().width(0.0),
+            placeholder: Color::TRANSPARENT,
+            value: Color::from_rgba8(128, 128, 128, 1.0),
+            selection: Color::from_rgba8(100, 140, 255, 0.5),
+        });
+
+    positioned(editor, 170, 185)
+}
+
+pub fn track_name_text(slot_id: SlotId) -> Element<'static, Message> {
+    let t = FitText {
+        content: slot_id.to_string(),
+        font: CTMKF,
+        max_size: 32.0,
+        min_size: 1.0,
+        width: 548.0,
+        height: 39.0,
+    };
+
+    positioned(iced::Element::new(t), 365, 154)
 }
 
 pub fn finish_time_text(finish_time: &InGameTime) -> Element<'_, Message> {
@@ -256,9 +275,9 @@ pub fn finish_time_text(finish_time: &InGameTime) -> Element<'_, Message> {
     positioned(t, 365, 205)
 }
 
-pub fn mii_name_text(mii_name: &str) -> Element<'_, Message> {
+pub fn mii_name_text(mii_name: &str) -> Element<'static, Message> {
     let t = FitText {
-        content: mii_name,
+        content: mii_name.to_owned(),
         font: CTMKF,
         max_size: 26.0,
         min_size: 8.0,
