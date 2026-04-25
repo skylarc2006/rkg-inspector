@@ -8,6 +8,7 @@ use crate::message::Message;
 pub mod app;
 pub mod files;
 pub mod helpers;
+pub mod link_type;
 pub mod message;
 pub mod mii_rendering;
 pub mod ui;

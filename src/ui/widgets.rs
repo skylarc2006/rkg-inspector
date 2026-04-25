@@ -1,11 +1,12 @@
 use iced::{
-    Alignment, Color, Element, Length, Rectangle, widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip}
+    Alignment, Color, Element, Length, Rectangle,
+    widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip},
 };
 use rkg_utils::{
     Ghost,
-    footer::{FooterType, ctgp_footer::CTGPFooter},
+    footer::{FooterType, ctgp_footer::{CTGPFooter, category::Category}},
     header::{
-        controller::Controller, date::Date, in_game_time::InGameTime, mii::Mii, slot_id::SlotId,
+        controller::Controller, date::Date, in_game_time::InGameTime, mii::Mii,
     },
 };
 use std::time::Duration;
@@ -186,7 +187,8 @@ pub fn footer_info_text<'a>(
         match footer {
             &FooterType::CTGPFooter(ctgp_footer) => match active_footer_tab {
                 FooterTab::CtgpIdentity => {
-                    footer_info_view = footer_info_view.push(ctgp_identity_info_element(ctgp_footer));
+                    footer_info_view =
+                        footer_info_view.push(ctgp_identity_info_element(ctgp_footer));
                     footer_info_view = footer_info_view.push(visit_ctgp_leaderboard_button());
                     footer_info_view = footer_info_view.push(visit_ctgp_ghost_page_button());
                     footer_info_view = footer_info_view.push(visit_ctgp_player_page_button());
@@ -208,10 +210,25 @@ pub fn ctgp_identity_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, M
     use std::fmt::Write;
     let mut s = String::new();
     write!(s, "Footer version: {}", ctgp_footer.footer_version()).unwrap();
-    write!(s, "\n\nTrack SHA1: {}", array_to_hex_string(ctgp_footer.track_sha1())).unwrap();
+    write!(
+        s,
+        "\n\nTrack SHA1: {}",
+        array_to_hex_string(ctgp_footer.track_sha1())
+    )
+    .unwrap();
     write!(s, "\nCategory: {}", ctgp_footer.category()).unwrap();
-    write!(s, "\n\nGhost SHA1: {}", array_to_hex_string(ctgp_footer.ghost_sha1())).unwrap();
-    write!(s, "\n\nPlayer ID: {}", array_to_hex_string(&ctgp_footer.player_id().to_be_bytes())).unwrap();
+    write!(
+        s,
+        "\n\nGhost SHA1: {}",
+        array_to_hex_string(ctgp_footer.ghost_sha1())
+    )
+    .unwrap();
+    write!(
+        s,
+        "\n\nPlayer ID: {}",
+        array_to_hex_string(&ctgp_footer.player_id().to_be_bytes())
+    )
+    .unwrap();
 
     if let Some(disc_region) = &ctgp_footer.disc_region() {
         write!(s, "\nDisc region: {}", disc_region_string(disc_region)).unwrap();
@@ -224,7 +241,11 @@ pub fn ctgp_identity_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, M
         if ctgp_versions.len() == 1 {
             format!("{}", ctgp_versions[0])
         } else {
-            format!("{} - {}", ctgp_versions[0], ctgp_versions[ctgp_versions.len() - 1])
+            format!(
+                "{} - {}",
+                ctgp_versions[0],
+                ctgp_versions[ctgp_versions.len() - 1]
+            )
         }
     } else {
         "Unknown".to_string()
@@ -293,9 +314,39 @@ pub fn visit_ctgp_player_page_button() -> Element<'static, Message> {
     positioned(btn, 970, 394)
 }
 
-pub fn track_name_text(slot_id: SlotId) -> Element<'static, Message> {
+pub fn track_name_text<'a>(ghost: &'a Ghost) -> Element<'a, Message> {
+    use std::fmt::Write;
+
+    let mut track_name = ghost.header().slot_id().to_string();
+    match ghost.footer() {
+        Some(FooterType::CTGPFooter(ctgp_footer)) => {
+            let category_string = match ctgp_footer.category() {
+                Category::Glitch => String::from("(Glitch)"),
+                Category::NoShortcut => String::from("(No Shortcut)"),
+                Category::Normal => String::from("(Normal)"),
+                Category::Shortcut => String::from("(Shortcut)"),
+                Category::NoShortcutTAS => String::from("(No Shortcut) (TAS)"),
+                Category::NormalTAS => String::from("(Normal) (TAS)"),
+                Category::ShortcutTAS => String::from("(Shortcut) (TAS)"),
+                Category::GlitchTAS => String::from("(Glitch) (TAS)"),
+                Category::NoShortcut200cc => String::from("(200cc) (No Shortcut)"),
+                Category::Normal200cc => String::from("(200cc) (Normal)"),
+                Category::Shortcut200cc => String::from("(200cc) (Shortcut)"),
+                Category::Glitch200cc => String::from("(200cc) (Glitch)"),
+                Category::NoShortcut200ccTAS => String::from("(200cc) (No Shortcut) (TAS)"),
+                Category::Normal200ccTAS => String::from("(200cc) (Normal) (TAS)"),
+                Category::Shortcut200ccTAS => String::from("(200cc) (Shortcut) (TAS)"),
+                Category::Glitch200ccTAS => String::from("(200cc) (Glitch) (TAS)"),
+            };
+
+            write!(track_name, " {}", category_string).unwrap();
+        },
+        Some(FooterType::SPFooter(_sp_footer)) => (),
+        _ => (),
+    }
+
     let t = FitText {
-        content: slot_id.to_string(),
+        content: track_name,
         font: CTMKF,
         max_size: 32.0,
         min_size: 1.0,
@@ -408,11 +459,11 @@ pub fn lap_splits_box<'a>(lap_splits: &[InGameTime]) -> Element<'a, Message> {
     // adjust lap split box size based on number of laps
     let (size, x_offset): (f32, u32) = match lap_splits.len() {
         1..=6 => (25.5, 30),
-        7     => (21.9, 66),
-        8     => (19.1, 94),
-        9     => (17.05, 114),
-        10    => (15.3, 132),
-        _     => (13.95, 145),
+        7 => (21.9, 66),
+        8 => (19.1, 94),
+        9 => (17.05, 114),
+        10 => (15.3, 132),
+        _ => (13.95, 145),
     };
 
     let lap_splits_element = container(

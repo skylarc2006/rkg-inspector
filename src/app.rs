@@ -6,12 +6,14 @@ use rkg_utils::header::mii::Mii;
 
 use crate::files::{pick_file, save_as_file};
 use crate::helpers::*;
+use crate::link_type::LinkType;
 use crate::message::Message;
 use crate::ui::footer_tab::FooterTab;
 use crate::ui::{assets, image_handles, widgets};
 
 pub struct RkgInspector {
     pub active_ghost: Option<Ghost>,
+    pub custom_track_name: Option<String>,
     pub background_handle: image::Handle,
     pub ghost_box_handle: image::Handle,
     pub info_background_handle: image::Handle,
@@ -29,6 +31,7 @@ impl RkgInspector {
     pub fn new() -> Self {
         Self {
             active_ghost: None,
+            custom_track_name: None,
             background_handle: image::Handle::from_bytes(assets::BACKGROUND),
             ghost_box_handle: image::Handle::from_bytes(assets::GHOST_BOX),
             info_background_handle: image::Handle::from_bytes(assets::INFO_BACKGROUND),
@@ -223,8 +226,17 @@ impl RkgInspector {
             }
 
             Message::VisitCtgpLeaderboard => {
-                if let Some(ghost) = &self.active_ghost && let Some(FooterType::CTGPFooter(footer)) = ghost.footer() {
-                    if webbrowser::open(&chadsoft_leaderboard_link(ghost.header().slot_id(), footer.track_sha1(), footer.category())).is_ok() {
+                if let Some(ghost) = &self.active_ghost
+                    && let Some(FooterType::CTGPFooter(footer)) = ghost.footer()
+                {
+                    if webbrowser::open(&chadsoft_leaderboard_link(
+                        ghost.header().slot_id(),
+                        footer.track_sha1(),
+                        footer.category(),
+                        LinkType::Html,
+                    ))
+                    .is_ok()
+                    {
                         // TODO: error handle
                     }
                 }
@@ -232,8 +244,12 @@ impl RkgInspector {
             }
 
             Message::VisitCtgpGhostPage => {
-                if let Some(ghost) = &self.active_ghost && let Some(FooterType::CTGPFooter(footer)) = ghost.footer() {
-                    if webbrowser::open(&chadsoft_ghost_link(footer.ghost_sha1())).is_ok() {
+                if let Some(ghost) = &self.active_ghost
+                    && let Some(FooterType::CTGPFooter(footer)) = ghost.footer()
+                {
+                    if webbrowser::open(&chadsoft_ghost_link(footer.ghost_sha1(), LinkType::Html))
+                        .is_ok()
+                    {
                         // TODO: error handle
                     }
                 }
@@ -241,8 +257,12 @@ impl RkgInspector {
             }
 
             Message::VisitCtgpPlayerPage => {
-                if let Some(ghost) = &self.active_ghost && let Some(FooterType::CTGPFooter(footer)) = ghost.footer() {
-                    if webbrowser::open(&chadsoft_player_link(footer.player_id())).is_ok() {
+                if let Some(ghost) = &self.active_ghost
+                    && let Some(FooterType::CTGPFooter(footer)) = ghost.footer()
+                {
+                    if webbrowser::open(&chadsoft_player_link(footer.player_id(), LinkType::Html))
+                        .is_ok()
+                    {
                         // TODO: error handle
                     }
                 }
@@ -266,7 +286,7 @@ impl RkgInspector {
         let track_name_text = self
             .active_ghost
             .as_ref()
-            .map(|g| widgets::track_name_text(g.header().slot_id()));
+            .map(|g| widgets::track_name_text(g));
 
         let finish_time_text = self
             .active_ghost

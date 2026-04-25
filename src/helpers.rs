@@ -3,6 +3,7 @@ use rkg_utils::{
     header::{mii::favorite_color::FavoriteColor, slot_id::SlotId},
 };
 
+use crate::link_type::LinkType;
 
 pub fn track_abbreviation(slot_id: SlotId) -> String {
     match slot_id {
@@ -90,7 +91,12 @@ pub fn disc_region_string(disc_region: &Region) -> &str {
     }
 }
 
-pub fn chadsoft_leaderboard_link(slot_id: SlotId, track_sha1: &[u8], category: Category) -> String {
+pub fn chadsoft_leaderboard_link(
+    slot_id: SlotId,
+    track_sha1: &[u8],
+    category: Category,
+    link_type: LinkType,
+) -> String {
     // https://chadsoft.co.uk/time-trials/leaderboard/{SLOT_HEX}/{TRACK_SHA1}/{CATEGORY}.html
     let slot_hex = u8::from(slot_id);
     let track_sha1 = array_to_hex_string(track_sha1);
@@ -98,16 +104,30 @@ pub fn chadsoft_leaderboard_link(slot_id: SlotId, track_sha1: &[u8], category: C
         Category::Shortcut | Category::Normal => 0,
         Category::Glitch => 1,
         Category::NoShortcut => 2,
-        Category::GlitchTAS | Category::NormalTAS | Category::ShortcutTAS | Category::NoShortcutTAS => 3,
+        Category::GlitchTAS
+        | Category::NormalTAS
+        | Category::ShortcutTAS
+        | Category::NoShortcutTAS => 3,
         Category::Shortcut200cc | Category::Normal200cc => 4,
         Category::Glitch200cc => 5,
         Category::NoShortcut200cc => 6,
-        Category::Glitch200ccTAS | Category::Normal200ccTAS | Category::Shortcut200ccTAS | Category::NoShortcut200ccTAS => 7,
+        Category::Glitch200ccTAS
+        | Category::Normal200ccTAS
+        | Category::Shortcut200ccTAS
+        | Category::NoShortcut200ccTAS => 7,
     };
-    format!("https://chadsoft.co.uk/time-trials/leaderboard/{slot_hex:02X}/{track_sha1}/{category:02}.html")
+    let link_type = if link_type == LinkType::Json {
+        "json"
+    } else {
+        "html"
+    };
+
+    format!(
+        "https://chadsoft.co.uk/time-trials/leaderboard/{slot_hex:02X}/{track_sha1}/{category:02}.{link_type}"
+    )
 }
 
-pub fn chadsoft_ghost_link(ghost_sha1: &[u8]) -> String {
+pub fn chadsoft_ghost_link(ghost_sha1: &[u8], link_type: LinkType) -> String {
     // https://chadsoft.co.uk/time-trials/rkgd/{G0}/{G1}/{GHOST_ID}.html
     // G0 - first byte of ghost SHA1 in hex
     // G1 - next byte of ghost SHA1 in hex
@@ -116,11 +136,19 @@ pub fn chadsoft_ghost_link(ghost_sha1: &[u8]) -> String {
     let byte_1 = ghost_sha1[0];
     let byte_2 = ghost_sha1[1];
     let remaining_bytes = array_to_hex_string(&ghost_sha1[2..]);
+    let link_type = match link_type {
+        LinkType::Html => "html",
+        LinkType::Json => "json",
+        LinkType::Rkg => "rkg",
+        LinkType::Mii => "mii",
+    };
 
-    format!("https://chadsoft.co.uk/time-trials/rkgd/{byte_1:02X}/{byte_2:02X}/{remaining_bytes}.html")
+    format!(
+        "https://chadsoft.co.uk/time-trials/rkgd/{byte_1:02X}/{byte_2:02X}/{remaining_bytes}.{link_type}"
+    )
 }
 
-pub fn chadsoft_player_link(player_id: u64) -> String {
+pub fn chadsoft_player_link(player_id: u64, link_type: LinkType) -> String {
     // https://chadsoft.co.uk/time-trials/players/{P0}/{P1}.html
     // P0 - first byte of player ID in hex
     // P1 - remaining bytes of player ID in hex
@@ -128,7 +156,13 @@ pub fn chadsoft_player_link(player_id: u64) -> String {
     let player_id = player_id.to_be_bytes();
     let byte_1 = player_id[0];
     let remaining_bytes = array_to_hex_string(&player_id[1..]);
+    let link_type = if link_type == LinkType::Json {
+        "json"
+    } else {
+        "html"
+    };
 
-    format!("https://chadsoft.co.uk/time-trials/players/{byte_1:02X}/{remaining_bytes}.html")
+    format!("https://chadsoft.co.uk/time-trials/players/{byte_1:02X}/{remaining_bytes}.{link_type}")
 }
+
 
