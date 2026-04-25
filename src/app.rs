@@ -1,4 +1,4 @@
-use iced::widget::{image, svg, text_editor};
+use iced::widget::{image, svg};
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
 use rkg_utils::footer::FooterType;
@@ -23,8 +23,6 @@ pub struct RkgInspector {
     pub mii_handle: Option<image::Handle>,
     pub loading: bool,
     pub active_footer_tab: FooterTab,
-    pub ctgp_identity_content: Option<text_editor::Content>,
-    pub sp_identity_content: Option<text_editor::Content>,
 }
 
 impl RkgInspector {
@@ -42,8 +40,6 @@ impl RkgInspector {
             mii_handle: None,
             loading: false,
             active_footer_tab: FooterTab::CtgpIdentity,
-            ctgp_identity_content: None,
-            sp_identity_content: None,
         }
     }
 
@@ -105,8 +101,6 @@ impl RkgInspector {
                                 self.active_footer_tab = FooterTab::SpIdentity;
                             }
                         }
-                    } else {
-                        self.ctgp_identity_content = None;
                     }
 
                     Task::perform(
