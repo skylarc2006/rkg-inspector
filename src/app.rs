@@ -98,15 +98,11 @@ impl RkgInspector {
 
                     if let Some(footer) = ghost.footer() {
                         match footer {
-                            FooterType::CTGPFooter(ctgp_footer) => {
+                            FooterType::CTGPFooter(_) => {
                                 self.active_footer_tab = FooterTab::CtgpIdentity;
-                                self.ctgp_identity_content = Some(text_editor::Content::with_text(
-                                    &widgets::build_ctgp_identity_text(ctgp_footer),
-                                ));
                             }
                             FooterType::SPFooter(_) => {
                                 self.active_footer_tab = FooterTab::SpIdentity;
-                                self.ctgp_identity_content = None;
                             }
                         }
                     } else {
@@ -202,15 +198,6 @@ impl RkgInspector {
                 Task::none()
             }
 
-            Message::CtgpIdentityTextAction(action) => {
-                if let Some(content) = &mut self.ctgp_identity_content {
-                    if !matches!(action, text_editor::Action::Edit(_)) {
-                        content.perform(action);
-                    }
-                }
-                Task::none()
-            }
-
             Message::SaveGhostAsFile => {
                 if let Some(ghost) = &self.active_ghost {
                     let finish_time = ghost.header().finish_time();
@@ -237,6 +224,33 @@ impl RkgInspector {
             Message::GhostSaved(path) => {
                 if let Some(ghost) = &mut self.active_ghost {
                     path.and_then(|p| ghost.save_to_file(&p).ok());
+                }
+                Task::none()
+            }
+
+            Message::VisitCtgpLeaderboard => {
+                if let Some(ghost) = &self.active_ghost && let Some(FooterType::CTGPFooter(footer)) = ghost.footer() {
+                    if webbrowser::open(&chadsoft_leaderboard_link(ghost.header().slot_id(), footer.track_sha1(), footer.category())).is_ok() {
+                        // TODO: error handle
+                    }
+                }
+                Task::none()
+            }
+
+            Message::VisitCtgpGhostPage => {
+                if let Some(ghost) = &self.active_ghost && let Some(FooterType::CTGPFooter(footer)) = ghost.footer() {
+                    if webbrowser::open(&chadsoft_ghost_link(footer.ghost_sha1())).is_ok() {
+                        // TODO: error handle
+                    }
+                }
+                Task::none()
+            }
+
+            Message::VisitCtgpPlayerPage => {
+                if let Some(ghost) = &self.active_ghost && let Some(FooterType::CTGPFooter(footer)) = ghost.footer() {
+                    if webbrowser::open(&chadsoft_player_link(footer.player_id())).is_ok() {
+                        // TODO: error handle
+                    }
                 }
                 Task::none()
             }
@@ -388,7 +402,7 @@ impl RkgInspector {
                 let footer_info_text = self
                     .active_ghost
                     .as_ref()
-                    .map(|g| widgets::footer_info_text(self.active_footer_tab, g, self.ctgp_identity_content.as_ref()));
+                    .map(|g| widgets::footer_info_text(self.active_footer_tab, g));
 
                 let close_footer_info_button = self
                     .active_ghost

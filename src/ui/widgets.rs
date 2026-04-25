@@ -1,5 +1,5 @@
 use iced::{
-    Alignment, Background, Color, Element, Length, Rectangle, widget::{Button, Image, button, column, container, image, row, stack, svg, text, text_editor, tooltip}
+    Alignment, Color, Element, Length, Rectangle, widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip}
 };
 use rkg_utils::{
     Ghost,
@@ -179,17 +179,17 @@ pub fn close_footer_info_button() -> Element<'static, Message> {
 pub fn footer_info_text<'a>(
     active_footer_tab: FooterTab,
     ghost: &'a Ghost,
-    ctgp_identity_content: Option<&'a text_editor::Content>,
 ) -> Element<'a, Message> {
     let mut footer_info_view = stack!();
 
     if let Some(footer) = &ghost.footer() {
         match footer {
-            &FooterType::CTGPFooter(_) => match active_footer_tab {
+            &FooterType::CTGPFooter(ctgp_footer) => match active_footer_tab {
                 FooterTab::CtgpIdentity => {
-                    if let Some(content) = ctgp_identity_content {
-                        footer_info_view = footer_info_view.push(get_ctgp_identity_element(content));
-                    }
+                    footer_info_view = footer_info_view.push(ctgp_identity_info_element(ctgp_footer));
+                    footer_info_view = footer_info_view.push(visit_ctgp_leaderboard_button());
+                    footer_info_view = footer_info_view.push(visit_ctgp_ghost_page_button());
+                    footer_info_view = footer_info_view.push(visit_ctgp_player_page_button());
                 }
 
                 _ => (),
@@ -204,19 +204,19 @@ pub fn footer_info_text<'a>(
     footer_info_view.into()
 }
 
-pub fn build_ctgp_identity_text(ctgp_footer: &CTGPFooter) -> String {
+pub fn ctgp_identity_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
     use std::fmt::Write;
     let mut s = String::new();
     write!(s, "Footer version: {}", ctgp_footer.footer_version()).unwrap();
-    write!(s, "\nTrack SHA1: {}", array_to_hex_string(ctgp_footer.track_sha1())).unwrap();
-    write!(s, "\nGhost SHA1: {}", array_to_hex_string(ctgp_footer.ghost_sha1())).unwrap();
-    write!(s, "\nPlayer ID: {}", array_to_hex_string(&ctgp_footer.player_id().to_be_bytes())).unwrap();
+    write!(s, "\n\nTrack SHA1: {}", array_to_hex_string(ctgp_footer.track_sha1())).unwrap();
+    write!(s, "\nCategory: {}", ctgp_footer.category()).unwrap();
+    write!(s, "\n\nGhost SHA1: {}", array_to_hex_string(ctgp_footer.ghost_sha1())).unwrap();
+    write!(s, "\n\nPlayer ID: {}", array_to_hex_string(&ctgp_footer.player_id().to_be_bytes())).unwrap();
 
     if let Some(disc_region) = &ctgp_footer.disc_region() {
         write!(s, "\nDisc region: {}", disc_region_string(disc_region)).unwrap();
     }
 
-    write!(s, "\n\nCategory: {}", ctgp_footer.category()).unwrap();
     write!(s, "\n\nCTGP CORE version: {}", ctgp_footer.core_version()).unwrap();
 
     let ctgp_versions_opt = ctgp_footer.possible_ctgp_versions();
@@ -231,25 +231,66 @@ pub fn build_ctgp_identity_text(ctgp_footer: &CTGPFooter) -> String {
     };
 
     write!(s, "\nPossible CTGP release versions: {}", release_versions).unwrap();
-    s
-}
 
-pub fn get_ctgp_identity_element<'a>(content: &'a text_editor::Content) -> Element<'a, Message> {
-    let editor = text_editor(content)
-        .on_action(Message::CtgpIdentityTextAction)
+    let text = text(s)
         .font(RODIN_NTLG_PRO_EB)
-        .size(25)
+        .size(22)
         .width(930)
         .height(400)
-        .style(|_, _| text_editor::Style {
-            background: Background::Color(Color::TRANSPARENT),
-            border: iced::Border::default().width(0.0),
-            placeholder: Color::TRANSPARENT,
-            value: Color::from_rgba8(128, 128, 128, 1.0),
-            selection: Color::from_rgba8(100, 140, 255, 0.5),
-        });
+        .color(Color::from_rgba8(128, 128, 128, 1.0));
 
-    positioned(editor, 170, 185)
+    positioned(text, 170, 185)
+}
+
+pub fn visit_ctgp_leaderboard_button() -> Element<'static, Message> {
+    let btn = button(
+        text("Visit CTGP Leaderboard")
+            .font(RODIN_NTLG_PRO_EB)
+            .size(12)
+            .center(),
+    )
+    .width(COMMON_BUTTON_WIDTH as f32 / 1.2)
+    .height(COMMON_BUTTON_HEIGHT)
+    .on_press(Message::VisitCtgpLeaderboard)
+    .style(|_, status| match status {
+        button::Status::Hovered => styles::hovered_button_style(),
+        _ => styles::common_button_style(),
+    });
+    positioned(btn, 970, 249)
+}
+
+pub fn visit_ctgp_ghost_page_button() -> Element<'static, Message> {
+    let btn = button(
+        text("Visit Ghost Page")
+            .font(RODIN_NTLG_PRO_EB)
+            .size(12)
+            .center(),
+    )
+    .width(COMMON_BUTTON_WIDTH as f32 / 1.2)
+    .height(COMMON_BUTTON_HEIGHT)
+    .on_press(Message::VisitCtgpGhostPage)
+    .style(|_, status| match status {
+        button::Status::Hovered => styles::hovered_button_style(),
+        _ => styles::common_button_style(),
+    });
+    positioned(btn, 970, 322)
+}
+
+pub fn visit_ctgp_player_page_button() -> Element<'static, Message> {
+    let btn = button(
+        text("Visit Player Page")
+            .font(RODIN_NTLG_PRO_EB)
+            .size(12)
+            .center(),
+    )
+    .width(COMMON_BUTTON_WIDTH as f32 / 1.2)
+    .height(COMMON_BUTTON_HEIGHT)
+    .on_press(Message::VisitCtgpPlayerPage)
+    .style(|_, status| match status {
+        button::Status::Hovered => styles::hovered_button_style(),
+        _ => styles::common_button_style(),
+    });
+    positioned(btn, 970, 394)
 }
 
 pub fn track_name_text(slot_id: SlotId) -> Element<'static, Message> {
