@@ -4,10 +4,11 @@ use iced::{
 };
 use rkg_utils::{
     Ghost,
-    footer::{FooterType, ctgp_footer::{CTGPFooter, category::Category}},
-    header::{
-        controller::Controller, date::Date, in_game_time::InGameTime, mii::Mii,
+    footer::{
+        FooterType,
+        ctgp_footer::{CTGPFooter, category::Category},
     },
+    header::{controller::Controller, date::Date, in_game_time::InGameTime, mii::Mii},
 };
 use std::time::Duration;
 
@@ -314,10 +315,18 @@ pub fn visit_ctgp_player_page_button() -> Element<'static, Message> {
     positioned(btn, 970, 394)
 }
 
-pub fn track_name_text<'a>(ghost: &'a Ghost) -> Element<'a, Message> {
+pub fn track_name_text<'a>(
+    ghost: &'a Ghost,
+    custom_track_name: Option<String>,
+) -> Element<'a, Message> {
     use std::fmt::Write;
 
-    let mut track_name = ghost.header().slot_id().to_string();
+    let mut track_name = if let Some(c) = custom_track_name {
+        c
+    } else {
+        ghost.header().slot_id().to_string()
+    };
+
     match ghost.footer() {
         Some(FooterType::CTGPFooter(ctgp_footer)) => {
             let category_string = match ctgp_footer.category() {
@@ -340,7 +349,7 @@ pub fn track_name_text<'a>(ghost: &'a Ghost) -> Element<'a, Message> {
             };
 
             write!(track_name, " {}", category_string).unwrap();
-        },
+        }
         Some(FooterType::SPFooter(_sp_footer)) => (),
         _ => (),
     }

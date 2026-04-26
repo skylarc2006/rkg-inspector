@@ -22,4 +22,6 @@ pub enum Message {
     VisitCtgpLeaderboard,
     VisitCtgpGhostPage,
     VisitCtgpPlayerPage,
+    GetCtgpTrackName,
+    CtgpTrackNameLoaded(Option<String>),
 }

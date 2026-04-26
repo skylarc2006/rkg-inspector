@@ -165,4 +165,24 @@ pub fn chadsoft_player_link(player_id: u64, link_type: LinkType) -> String {
     format!("https://chadsoft.co.uk/time-trials/players/{byte_1:02X}/{remaining_bytes}.{link_type}")
 }
 
+pub async fn fetch_ctgp_track_name(
+    slot_id: SlotId,
+    track_sha1: Vec<u8>,
+    category: Category,
+) -> Option<String> {
+    let json_link = chadsoft_leaderboard_link(slot_id, &track_sha1, category, LinkType::Json);
+    let json: serde_json::Value = reqwest::get(json_link).await.ok()?.json().await.ok()?;
+    
+    let mut track_name = String::new();
+    if let Some(t) = json["name"].as_str() {
+        track_name.push_str(t);
+    } else {
+        track_name.push_str(&array_to_hex_string(&track_sha1));
+    }
 
+    if let Some(v) = json["version"].as_str() {
+        track_name.push_str(format!("({})", v).as_str());
+    }
+
+    Some(track_name)
+}

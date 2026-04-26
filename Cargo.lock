@@ -3699,6 +3699,7 @@ dependencies = [
  "reqwest",
  "rfd",
  "rkg-utils",
+ "serde_json",
  "tokio",
  "webbrowser",
  "winres",

@@ -81,6 +81,7 @@ impl RkgInspector {
             Message::GhostPicked(path) => {
                 self.edit_menu_active = false;
                 self.footer_info_menu_active = false;
+                self.custom_track_name = None;
                 self.loading = true;
                 self.mii_handle = None;
                 self.active_ghost = path.and_then(|p| Ghost::new_from_file(&p).ok());
@@ -106,13 +107,32 @@ impl RkgInspector {
                         }
                     }
 
-                    Task::perform(
+                    let mii_task = Task::perform(
                         image_handles::get_mii_image_handle(
                             ghost.header().mii().raw_data().to_vec(),
                         ),
                         Message::MiiHandleLoaded,
-                    )
+                    );
+
+                    // There is code fully implemented for custom track name fetching via Chadsoft's JSON API,
+                    // but unfortunately is currently unusable as Chadsoft's JSON API is extremely unreliable
+                    // or non-functional.
+                    let _track_name_task =
+                        if let Some(FooterType::CTGPFooter(ctgp_footer)) = ghost.footer() {
+                            let slot_id = ghost.header().slot_id();
+                            let track_sha1 = ctgp_footer.track_sha1().to_vec();
+                            let category = ctgp_footer.category();
+                            Task::perform(
+                                fetch_ctgp_track_name(slot_id, track_sha1, category),
+                                Message::CtgpTrackNameLoaded,
+                            )
+                        } else {
+                            Task::none()
+                        };
+
+                    mii_task
                 } else {
+                    self.custom_track_name = None;
                     self.character_handle = None;
                     self.vehicle_handle = None;
                     self.country_handle = None;
@@ -268,6 +288,31 @@ impl RkgInspector {
                 }
                 Task::none()
             }
+
+            Message::GetCtgpTrackName => {
+                if let Some(ghost) = &self.active_ghost {
+                    if let Some(FooterType::CTGPFooter(ctgp_footer)) = ghost.footer() {
+                        let slot_id = ghost.header().slot_id();
+                        let track_sha1 = ctgp_footer.track_sha1().to_vec();
+                        let category = ctgp_footer.category();
+                        Task::perform(
+                            fetch_ctgp_track_name(slot_id, track_sha1, category),
+                            Message::CtgpTrackNameLoaded,
+                        )
+                    } else {
+                        Task::none()
+                    }
+                } else {
+                    Task::none()
+                }
+            }
+
+            Message::CtgpTrackNameLoaded(track_name) => {
+                if self.custom_track_name.is_none() {
+                    self.custom_track_name = track_name;
+                }
+                Task::none()
+            }
         }
     }
 
@@ -286,7 +331,7 @@ impl RkgInspector {
         let track_name_text = self
             .active_ghost
             .as_ref()
-            .map(|g| widgets::track_name_text(g));
+            .map(|g| widgets::track_name_text(g, self.custom_track_name.clone()));
 
         let finish_time_text = self
             .active_ghost
