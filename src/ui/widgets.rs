@@ -623,17 +623,29 @@ pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
 }
 
 pub fn mii_import_button() -> Element<'static, Message> {
+    let x_pos = if std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default() == "windows" {
+        310
+    } else {
+        315
+    };
+
     positioned(
         ghost_action_button("Import Mii", true, Message::MiiImport),
-        310,
+        x_pos,
         480,
     )
 }
 
 pub fn mii_export_button() -> Element<'static, Message> {
+    let x_pos = if std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default() == "windows" {
+        310
+    } else {
+        315
+    };
+
     positioned(
         ghost_action_button("Export Mii", true, Message::MiiExport),
-        310,
+        x_pos,
         526,
     )
 }

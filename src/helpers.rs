@@ -172,7 +172,7 @@ pub async fn fetch_ctgp_track_name(
 ) -> Option<String> {
     let json_link = chadsoft_leaderboard_link(slot_id, &track_sha1, category, LinkType::Json);
     let json: serde_json::Value = reqwest::get(json_link).await.ok()?.json().await.ok()?;
-    
+
     let mut track_name = String::new();
     if let Some(t) = json["name"].as_str() {
         track_name.push_str(t);
