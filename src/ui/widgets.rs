@@ -356,7 +356,7 @@ pub fn track_name_text<'a>(
 
     let t = FitText {
         content: track_name,
-        font: CTMKF,
+        font: RODIN_NTLG_PRO_EB,
         max_size: 32.0,
         min_size: 1.0,
         width: 548.0,
@@ -490,7 +490,8 @@ pub fn lap_splits_box<'a>(lap_splits: &[InGameTime]) -> Element<'a, Message> {
 }
 
 pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
-    let font_size = 14.0;
+    let font_size = if cfg!(target_os = "macos") { 10.5 } else { 14.0 };
+    let element_y_pos = if cfg!(target_os = "macos") { 430 } else { 391 };
 
     let label_col = column![
         text("Mii Info")
@@ -619,14 +620,14 @@ pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
         .padding(10)
         .style(styles::info_box_style());
 
-    positioned(mii_info_element, 30, 391) /* 367 with height and weight shown */
+    positioned(mii_info_element, 30, element_y_pos) /* 367 with height and weight shown */
 }
 
 pub fn mii_import_button() -> Element<'static, Message> {
-    let x_pos = if std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default() == "windows" {
-        310
-    } else {
+    let x_pos = if cfg!(target_os = "linux") {
         315
+    } else {
+        310
     };
 
     positioned(
@@ -637,10 +638,10 @@ pub fn mii_import_button() -> Element<'static, Message> {
 }
 
 pub fn mii_export_button() -> Element<'static, Message> {
-    let x_pos = if std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default() == "windows" {
-        310
-    } else {
+    let x_pos = if cfg!(target_os = "linux") {
         315
+    } else {
+        310
     };
 
     positioned(
