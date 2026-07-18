@@ -1,7 +1,6 @@
-use rkg_utils::{
-    footer::ctgp_footer::{category::Category, region::Region},
-    header::{mii::favorite_color::FavoriteColor, slot_id::SlotId},
-};
+
+
+use rkg_utils::{footer::ctgp_footer::{Category, Region}, header::{SlotId, mii::FavoriteColor}};
 
 use crate::link_type::LinkType;
 

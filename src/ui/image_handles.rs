@@ -1,8 +1,6 @@
 use iced::widget::{image, svg};
-use rkg_utils::header::{
-    combo::{character::Character, vehicle::Vehicle},
-    location::constants::Country,
-};
+use rkg_utils::header::{combo::{Character, Vehicle}, location::constants::Country};
+
 
 use crate::ui::assets::*;
 

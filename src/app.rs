@@ -104,6 +104,7 @@ impl RkgInspector {
                             FooterType::SPFooter(_) => {
                                 self.active_footer_tab = FooterTab::SpIdentity;
                             }
+                            FooterType::Unknown(_) => (),
                         }
                     }
 
@@ -455,6 +456,7 @@ impl RkgInspector {
                         }
 
                         FooterType::SPFooter(_) => (),
+                        FooterType::Unknown(_) => (),
                     }
                 };
 

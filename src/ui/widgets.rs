@@ -2,14 +2,8 @@ use iced::{
     Alignment, Color, Element, Length, Rectangle,
     widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip},
 };
-use rkg_utils::{
-    Ghost,
-    footer::{
-        FooterType,
-        ctgp_footer::{CTGPFooter, category::Category},
-    },
-    header::{controller::Controller, date::Date, in_game_time::InGameTime, mii::Mii},
-};
+use rkg_utils::{CTGPFooter, FooterType, Ghost, Mii, footer::ctgp_footer::Category, header::{Controller, Date, InGameTime}};
+
 use std::time::Duration;
 
 use crate::{
@@ -201,6 +195,8 @@ pub fn footer_info_text<'a>(
             &FooterType::SPFooter(_sp_footer) => match active_footer_tab {
                 _ => (),
             },
+
+            &FooterType::Unknown(_) => (),
         }
     }
 
@@ -237,7 +233,7 @@ pub fn ctgp_identity_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, M
 
     write!(s, "\n\nCTGP CORE version: {}", ctgp_footer.core_version()).unwrap();
 
-    let ctgp_versions_opt = ctgp_footer.possible_ctgp_versions();
+    let ctgp_versions_opt = ctgp_footer.possible_release_versions();
     let release_versions = if let Some(ctgp_versions) = &ctgp_versions_opt {
         if ctgp_versions.len() == 1 {
             format!("{}", ctgp_versions[0])
@@ -366,7 +362,7 @@ pub fn track_name_text<'a>(
     positioned(iced::Element::new(t), 365, 154)
 }
 
-pub fn finish_time_text(finish_time: &InGameTime) -> Element<'_, Message> {
+pub fn finish_time_text(finish_time: InGameTime) -> Element<'static, Message> {
     let t = text(finish_time.to_string())
         .align_x(Alignment::Center)
         .align_y(Alignment::Center)
@@ -712,6 +708,7 @@ pub fn external_footer_button<'a>(ghost: &'a Ghost) -> Option<Element<'a, Messag
     let label = match ghost.footer()? {
         FooterType::CTGPFooter(_) => "CTGP ghost",
         FooterType::SPFooter(_) => "MKW-SP ghost",
+        FooterType::Unknown(_) => "Unknown",
     };
 
     let btn = button(text(label).font(RODIN_NTLG_PRO_EB).size(16).center())
