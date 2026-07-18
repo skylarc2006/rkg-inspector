@@ -38,13 +38,13 @@ pub fn background(
     background_handle: image::Handle,
     ghost_box_handle: image::Handle,
 ) -> Element<'static, Message> {
-    let background_image = image(background_handle).scale(1.0);
-    let ghost_box: Image = image(ghost_box_handle).scale(0.5);
+    let background_image = image(background_handle).scale(1.0f32);
+    let ghost_box: Image = image(ghost_box_handle).scale(0.5f32);
     stack!(background_image, ghost_box).into()
 }
 
 pub fn info_background(info_background_handle: image::Handle) -> Element<'static, Message> {
-    image(info_background_handle).scale(0.85).into()
+    image(info_background_handle).scale(0.85f32).into()
 }
 
 pub fn prerelease_warning_text() -> Element<'static, Message> {
@@ -346,7 +346,20 @@ pub fn track_name_text<'a>(
 
             write!(track_name, " {}", category_string).unwrap();
         }
-        Some(FooterType::SPFooter(_sp_footer)) => (),
+        Some(FooterType::SPFooter(sp_footer)) => {
+            let mut category_string = String::new();
+            if sp_footer.is_200cc() {
+                category_string.push_str(" (200cc)");
+            }
+            if let Some(mirror) = sp_footer.set_in_mirror() && mirror {
+                category_string.push_str(" (Mirror)")
+            }
+            if sp_footer.has_ultra_shortcut() {
+                category_string.push_str(" (Glitch)");
+            }
+
+            write!(track_name, "{}", category_string).unwrap();
+        },
         _ => (),
     }
 
