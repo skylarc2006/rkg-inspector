@@ -372,6 +372,16 @@ impl RkgInspector {
             .as_ref()
             .map(|g| widgets::mii_info_box(g.header().mii()));
 
+        let shroomstrat_box = self
+            .active_ghost
+            .as_ref()
+            .map(|g| widgets::shroomstrat_box(g.shroomstrat()));
+
+        let shroom_element = self
+            .active_ghost
+            .as_ref()
+            .map(|g| widgets::shroom_element(g.shroomstrat()));
+
         let date_set_box = self
             .active_ghost
             .as_ref()
@@ -499,6 +509,8 @@ impl RkgInspector {
                 vehicle_element,
                 lap_splits_box,
                 mii_box,
+                shroomstrat_box,
+                shroom_element,
                 date_set_box,
                 ghost_type_box,
                 controller_box,

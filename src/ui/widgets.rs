@@ -2,18 +2,13 @@ use iced::{
     Alignment, Color, Element, Length, Rectangle,
     widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip},
 };
-use rkg_utils::{CTGPFooter, FooterType, Ghost, Mii, footer::ctgp_footer::Category, header::{Controller, Date, InGameTime}};
+use rkg_utils::{CTGPFooter, FooterType, Ghost, Mii, Shroomstrat, footer::ctgp_footer::Category, header::{Controller, Date, InGameTime}};
 
-use std::time::Duration;
+use std::{cmp::max, time::Duration};
 
 use crate::{
-    helpers::{array_to_hex_string, disc_region_string, favorite_color_string},
-    message::Message,
-    ui::{
-        constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
-        fit_text::FitText,
-        footer_tab::FooterTab,
-        positioned, styles,
+    helpers::{array_to_hex_string, disc_region_string, favorite_color_string}, message::Message, ui::{
+        assets::MUSHROOM, constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION}, fit_text::FitText, footer_tab::FooterTab, positioned, styles,
     },
 };
 
@@ -631,6 +626,38 @@ pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
 
     positioned(mii_info_element, 30, element_y_pos) /* 367 with height and weight shown */
 }
+
+pub fn shroomstrat_box<'a>(shroomstrat: Shroomstrat) -> Element<'a, Message> {
+
+    let len = max(shroomstrat.to_string().len(), 5);
+    let text_width = len as f32 * 13.5 + 22.5;
+
+    let shroomstrat_text = text(shroomstrat.to_string())
+        .font(RODIN_NTLG_PRO_EB)
+        .color(Color::WHITE)
+        .size(24)
+        .width(text_width)
+        .height(80)
+        .align_x(Alignment::Center)
+        .align_y(Alignment::End);
+
+    let shroomstrat_element = container(shroomstrat_text)
+        .padding(10)
+        .style(styles::info_box_style());
+
+    positioned(shroomstrat_element, 960, 135)
+}
+
+pub fn shroom_element<'a>(shroomstrat: Shroomstrat) -> Element<'a, Message> {
+    let handle = image::Handle::from_bytes(MUSHROOM);
+    let shroom_image = image(handle.clone()).height(55);
+
+    let len = max(shroomstrat.to_string().len(), 5);
+    let x_position = (len as f32 * 6.75 + 955.0) as u32;
+
+    positioned(shroom_image, x_position, 141)
+}
+
 
 pub fn mii_import_button() -> Element<'static, Message> {
     let x_pos = if cfg!(target_os = "linux") {
