@@ -1,6 +1,8 @@
 use iced::{
     Alignment, Color, Element, Length, Rectangle,
-    widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip},
+    widget::{
+        Button, Image, button, column, container, image, row, scrollable, stack, svg, text, tooltip,
+    },
 };
 use rkg_utils::{
     CTGPFooter, FooterType, Ghost, Mii, Shroomstrat,
@@ -196,10 +198,13 @@ pub fn footer_info_text<'a>(
                 FooterTab::CtgpTimeInfo => {
                     footer_info_view =
                         footer_info_view.push(ctgp_exact_time_info_element(ctgp_footer));
-                    footer_info_view =
-                        footer_info_view.push(ctgp_rtc_info_element(ctgp_footer));
-                    footer_info_view =
-                        footer_info_view.push(ctgp_pause_info_element(ctgp_footer));
+                    footer_info_view = footer_info_view.push(ctgp_rtc_info_element(ctgp_footer));
+                    footer_info_view = footer_info_view.push(ctgp_pause_info_element(ctgp_footer));
+
+                    if !ctgp_footer.pause_times().is_empty() {
+                        footer_info_view =
+                            footer_info_view.push(ctgp_pause_time_list_element(ctgp_footer));
+                    }
                 }
 
                 _ => (),
@@ -313,6 +318,20 @@ pub fn ctgp_rtc_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Messag
     )
     .unwrap();
 
+    let run_duration = ctgp_footer.rtc_race_end() - ctgp_footer.rtc_race_begins();
+
+    let total_ms = run_duration.num_milliseconds();
+    let minutes = total_ms / 60_000;
+    let seconds = (total_ms % 60_000) / 1_000;
+    let millis = total_ms % 1_000;
+
+    write!(
+        s,
+        "\nRun duration: {}m {}s {}ms",
+        minutes, seconds, millis,
+    )
+    .unwrap();
+
     let text = text(s)
         .font(RODIN_NTLG_PRO_EB)
         .size(20)
@@ -334,6 +353,8 @@ pub fn ctgp_pause_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Mess
     )
     .unwrap();
 
+    write!(s, "\nPause input count: {}", ctgp_footer.pause_times().len()).unwrap();
+
     if !ctgp_footer.pause_times().is_empty() {
         write!(s, "\n\nPause times:").unwrap();
     }
@@ -349,19 +370,19 @@ pub fn ctgp_pause_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Mess
 }
 
 pub fn ctgp_pause_time_list_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
-    use std::fmt::Write;
-    let mut s = String::new();
+    let entries = column(ctgp_footer.pause_times().iter().map(|pause_time| {
+        text(pause_time.to_string())
+            .font(RODIN_NTLG_PRO_EB)
+            .size(20)
+            .color(Color::from_rgba8(128, 128, 128, 1.0))
+            .into()
+    }))
+    .spacing(2)
+    .width(400);
 
+    let list = scrollable(entries).height(250).width(400);
 
-
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(Color::from_rgba8(128, 128, 128, 1.0));
-
-    positioned(text, 700, 500)
+    positioned(list, 700, 295)
 }
 
 pub fn visit_ctgp_leaderboard_button() -> Element<'static, Message> {
