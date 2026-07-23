@@ -2,13 +2,23 @@ use iced::{
     Alignment, Color, Element, Length, Rectangle,
     widget::{Button, Image, button, column, container, image, row, stack, svg, text, tooltip},
 };
-use rkg_utils::{CTGPFooter, FooterType, Ghost, Mii, Shroomstrat, footer::ctgp_footer::Category, header::{Controller, Date, InGameTime}};
+use rkg_utils::{
+    CTGPFooter, FooterType, Ghost, Mii, Shroomstrat,
+    footer::ctgp_footer::Category,
+    header::{Controller, Date, InGameTime},
+};
 
 use std::{cmp::max, time::Duration};
 
 use crate::{
-    helpers::{array_to_hex_string, disc_region_string, favorite_color_string}, message::Message, ui::{
-        assets::MUSHROOM, constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION}, fit_text::FitText, footer_tab::FooterTab, positioned, styles,
+    helpers::{array_to_hex_string, disc_region_string, favorite_color_string},
+    message::Message,
+    ui::{
+        assets::MUSHROOM,
+        constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
+        fit_text::FitText,
+        footer_tab::FooterTab,
+        positioned, styles,
     },
 };
 
@@ -183,6 +193,14 @@ pub fn footer_info_text<'a>(
                     footer_info_view = footer_info_view.push(visit_ctgp_ghost_page_button());
                     footer_info_view = footer_info_view.push(visit_ctgp_player_page_button());
                 }
+                FooterTab::CtgpTimeInfo => {
+                    footer_info_view =
+                        footer_info_view.push(ctgp_exact_time_info_element(ctgp_footer));
+                    footer_info_view =
+                        footer_info_view.push(ctgp_rtc_info_element(ctgp_footer));
+                    footer_info_view =
+                        footer_info_view.push(ctgp_pause_info_element(ctgp_footer));
+                }
 
                 _ => (),
             },
@@ -253,6 +271,97 @@ pub fn ctgp_identity_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, M
         .color(Color::from_rgba8(128, 128, 128, 1.0));
 
     positioned(text, 170, 185)
+}
+
+pub fn ctgp_exact_time_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+
+    write!(s, "Exact finish time: {}", ctgp_footer.exact_finish_time()).unwrap();
+
+    write!(s, "\n\nExact lap splits:").unwrap();
+    for (idx, exact_lap_time) in ctgp_footer.exact_lap_times().iter().enumerate() {
+        write!(s, "\n\tLap {}:\t{}", idx + 1, exact_lap_time).unwrap();
+    }
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(Color::from_rgba8(128, 128, 128, 1.0));
+
+    positioned(text, 170, 185)
+}
+
+pub fn ctgp_rtc_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+
+    write!(
+        s,
+        "Time at run start: {}",
+        ctgp_footer
+            .rtc_race_begins()
+            .format("%Y-%m-%d %H:%M:%S%.3f")
+    )
+    .unwrap();
+    write!(
+        s,
+        "\nTime at run end: {}",
+        ctgp_footer.rtc_race_end().format("%Y-%m-%d %H:%M:%S%.3f")
+    )
+    .unwrap();
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(Color::from_rgba8(128, 128, 128, 1.0));
+
+    positioned(text, 170, 515)
+}
+
+pub fn ctgp_pause_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+
+    write!(
+        s,
+        "Total pause duration: {:.3}s",
+        ctgp_footer.rtc_time_paused().num_milliseconds() as f32 / 1000.0
+    )
+    .unwrap();
+
+    if !ctgp_footer.pause_times().is_empty() {
+        write!(s, "\n\nPause times:").unwrap();
+    }
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(Color::from_rgba8(128, 128, 128, 1.0));
+
+    positioned(text, 700, 185)
+}
+
+pub fn ctgp_pause_time_list_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+
+
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(Color::from_rgba8(128, 128, 128, 1.0));
+
+    positioned(text, 700, 500)
 }
 
 pub fn visit_ctgp_leaderboard_button() -> Element<'static, Message> {
@@ -346,7 +455,9 @@ pub fn track_name_text<'a>(
             if sp_footer.is_200cc() {
                 category_string.push_str(" (200cc)");
             }
-            if let Some(mirror) = sp_footer.set_in_mirror() && mirror {
+            if let Some(mirror) = sp_footer.set_in_mirror()
+                && mirror
+            {
                 category_string.push_str(" (Mirror)")
             }
             if sp_footer.has_ultra_shortcut() {
@@ -354,7 +465,7 @@ pub fn track_name_text<'a>(
             }
 
             write!(track_name, "{}", category_string).unwrap();
-        },
+        }
         _ => (),
     }
 
@@ -494,7 +605,11 @@ pub fn lap_splits_box<'a>(lap_splits: &[InGameTime]) -> Element<'a, Message> {
 }
 
 pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
-    let font_size = if cfg!(target_os = "macos") { 10.5 } else { 14.0 };
+    let font_size = if cfg!(target_os = "macos") {
+        10.5
+    } else {
+        14.0
+    };
     let element_y_pos = if cfg!(target_os = "macos") { 430 } else { 391 };
 
     let label_col = column![
@@ -628,7 +743,6 @@ pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
 }
 
 pub fn shroomstrat_box<'a>(shroomstrat: Shroomstrat) -> Element<'a, Message> {
-
     let len = max(shroomstrat.to_string().len(), 5);
     let text_width = len as f32 * 13.5 + 22.5;
 
@@ -658,13 +772,8 @@ pub fn shroom_element<'a>(shroomstrat: Shroomstrat) -> Element<'a, Message> {
     positioned(shroom_image, x_position, 141)
 }
 
-
 pub fn mii_import_button() -> Element<'static, Message> {
-    let x_pos = if cfg!(target_os = "linux") {
-        315
-    } else {
-        310
-    };
+    let x_pos = if cfg!(target_os = "linux") { 315 } else { 310 };
 
     positioned(
         ghost_action_button("Import Mii", true, Message::MiiImport),
@@ -674,11 +783,7 @@ pub fn mii_import_button() -> Element<'static, Message> {
 }
 
 pub fn mii_export_button() -> Element<'static, Message> {
-    let x_pos = if cfg!(target_os = "linux") {
-        315
-    } else {
-        310
-    };
+    let x_pos = if cfg!(target_os = "linux") { 315 } else { 310 };
 
     positioned(
         ghost_action_button("Export Mii", true, Message::MiiExport),
