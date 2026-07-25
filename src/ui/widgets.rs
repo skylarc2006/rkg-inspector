@@ -206,6 +206,43 @@ pub fn footer_info_text<'a>(
                             footer_info_view.push(ctgp_pause_time_list_element(ctgp_footer));
                     }
                 }
+                FooterTab::CtgpRaceEvents => {
+                    footer_info_view = footer_info_view.push(ctgp_race_flags_element(ctgp_footer));
+
+                    footer_info_view = footer_info_view.push(ctgp_potentially_cheated_element(
+                        ctgp_footer.potentially_cheated_ghost(),
+                    ));
+
+                    footer_info_view = footer_info_view.push(ctgp_potential_rapidfire_element(
+                        ctgp_footer.potential_rapidfire(),
+                    ));
+
+                    footer_info_view = footer_info_view.push(ctgp_potential_slowdown_element(
+                        ctgp_footer.potential_slowdown(),
+                    ));
+
+                    if let Some(intersection) = ctgp_footer.final_lap_dubious_intersection() {
+                        footer_info_view =
+                            footer_info_view.push(ctgp_final_lap_flag_element(intersection));
+                    }
+
+                    if let Some(enabled) = ctgp_footer.usb_gamecube_enabled() {
+                        footer_info_view =
+                            footer_info_view.push(ctgp_usb_gamecube_element(enabled));
+                    }
+
+                    if let Some(enabled) = ctgp_footer.my_stuff_enabled()
+                        && let Some(used) = ctgp_footer.my_stuff_used()
+                    {
+                        footer_info_view =
+                            footer_info_view.push(ctgp_my_stuff_element(enabled, used));
+                    }
+
+                    if let Some(disabled) = ctgp_footer.anti_tas_deliberately_disabled() {
+                        footer_info_view = footer_info_view
+                            .push(ctgp_anti_tas_deliberately_disabled_element(disabled));
+                    }
+                }
 
                 _ => (),
             },
@@ -325,12 +362,7 @@ pub fn ctgp_rtc_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Messag
     let seconds = (total_ms % 60_000) / 1_000;
     let millis = total_ms % 1_000;
 
-    write!(
-        s,
-        "\nRun duration: {}m {}s {}ms",
-        minutes, seconds, millis,
-    )
-    .unwrap();
+    write!(s, "\nRun duration: {}m {}s {}ms", minutes, seconds, millis,).unwrap();
 
     let text = text(s)
         .font(RODIN_NTLG_PRO_EB)
@@ -353,7 +385,12 @@ pub fn ctgp_pause_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Mess
     )
     .unwrap();
 
-    write!(s, "\nPause input count: {}", ctgp_footer.pause_times().len()).unwrap();
+    write!(
+        s,
+        "\nPause input count: {}",
+        ctgp_footer.pause_times().len()
+    )
+    .unwrap();
 
     if !ctgp_footer.pause_times().is_empty() {
         write!(s, "\n\nPause times:").unwrap();
@@ -383,6 +420,172 @@ pub fn ctgp_pause_time_list_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a,
     let list = scrollable(entries).height(250).width(400);
 
     positioned(list, 700, 295)
+}
+
+pub fn ctgp_final_lap_flag_element<'a>(intersection: bool) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "Final lap dubious intersection? \t{}", intersection).unwrap();
+
+    let color = if intersection {
+        Color::from_rgba8(255, 0, 0, 1.0)
+    } else {
+        Color::from_rgba8(128, 128, 128, 1.0)
+    };
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(color);
+
+    positioned(text, 170, 419)
+}
+
+pub fn ctgp_usb_gamecube_element<'a>(enabled: bool) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "USB Gamecube enabled?\t\t\t{}", enabled).unwrap();
+
+    let color = if enabled {
+        Color::from_rgba8(128, 0, 128, 1.0)
+    } else {
+        Color::from_rgba8(128, 128, 128, 1.0)
+    };
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(color);
+
+    positioned(text, 170, 445)
+}
+
+pub fn ctgp_my_stuff_element<'a>(enabled: bool, used: bool) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "My Stuff enabled?\t\t\t\t{}", enabled).unwrap();
+    write!(s, "\nMy Stuff used?\t\t\t\t\t{}", used).unwrap();
+
+    let color = Color::from_rgba8(128, 128, 128, 1.0);
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(color);
+
+    positioned(text, 170, 471)
+}
+
+pub fn ctgp_anti_tas_deliberately_disabled_element<'a>(disabled: bool) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "Anti-TAS deliberately disabled?\t{}", disabled).unwrap();
+
+    let color = if disabled {
+        Color::from_rgba8(255, 0, 0, 1.0)
+    } else {
+        Color::from_rgba8(128, 128, 128, 1.0)
+    };
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(color);
+
+    positioned(text, 170, 523)
+}
+
+pub fn ctgp_race_flags_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+
+    write!(s, "Respawns?\t\t\t\t\t{}", ctgp_footer.respawns()).unwrap();
+    write!(s, "\nMii name replaced?\t\t\t\t{}", ctgp_footer.has_name_replaced()).unwrap();
+    write!(s, "\nMii data replaced?\t\t\t\t{}", ctgp_footer.has_mii_data_replaced()).unwrap();
+    write!(s, "\nOut of bounds?\t\t\t\t\t{}", ctgp_footer.went_oob()).unwrap();
+    write!(s, "\nCannoned?\t\t\t\t\t{}", ctgp_footer.cannoned()).unwrap();
+
+    let color = Color::from_rgba8(128, 128, 128, 1.0);
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(color);
+
+    positioned(text, 170, 185)
+}
+
+pub fn ctgp_potentially_cheated_element<'a>(cheated: bool) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "Potentially cheated? \t\t\t{}", cheated).unwrap();
+
+    let color = if cheated {
+        Color::from_rgba8(255, 0, 0, 1.0)
+    } else {
+        Color::from_rgba8(128, 128, 128, 1.0)
+    };
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(color);
+
+    positioned(text, 170, 315)
+}
+
+pub fn ctgp_potential_rapidfire_element<'a>(rapidfire: bool) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "Potential rapidfire?\t\t\t\t{}", rapidfire).unwrap();
+
+    let color = if rapidfire {
+        Color::from_rgba8(255, 0, 0, 1.0)
+    } else {
+        Color::from_rgba8(128, 128, 128, 1.0)
+    };
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(color);
+
+    positioned(text, 170, 341)
+}
+
+pub fn ctgp_potential_slowdown_element<'a>(slowdown: bool) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "Potential slowdown?\t\t\t{}", slowdown).unwrap();
+
+    let color = if slowdown {
+        Color::from_rgba8(255, 0, 0, 1.0)
+    } else {
+        Color::from_rgba8(128, 128, 128, 1.0)
+    };
+
+    let text = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(20)
+        .width(930)
+        .height(400)
+        .color(color);
+
+    positioned(text, 170, 367)
 }
 
 pub fn visit_ctgp_leaderboard_button() -> Element<'static, Message> {
