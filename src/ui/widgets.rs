@@ -1,7 +1,8 @@
 use iced::{
     Alignment, Color, Element, Length, Rectangle,
     widget::{
-        Button, Image, button, column, container, image, row, scrollable, stack, svg, text, tooltip,
+        Button, Image, Space, button, column, container, image, row, scrollable, stack, svg, text,
+        tooltip,
     },
 };
 use rkg_utils::{
@@ -13,13 +14,15 @@ use rkg_utils::{
 use std::{cmp::max, time::Duration};
 
 use crate::{
-    helpers::{array_to_hex_string, disc_region_string, favorite_color_string},
-    message::Message,
+    helpers::array_to_hex_string,
+    message::{CtgpLink, Message},
     ui::{
         assets::MUSHROOM,
         constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
         fit_text::FitText,
         footer_tab::FooterTab,
+        format::{disc_region_string, favorite_color_string},
+        layout::{CLOSE_BUTTON_POS, FOOTER_INFO_ORIGIN},
         positioned, styles,
     },
 };
@@ -32,13 +35,62 @@ fn ghost_action_button(label: &str, enabled: bool, msg: Message) -> Button<'_, M
         .width(COMMON_BUTTON_WIDTH)
         .height(COMMON_BUTTON_HEIGHT);
     if enabled {
-        btn.on_press(msg).style(|_, status| match status {
-            button::Status::Hovered => styles::hovered_button_style(),
-            _ => styles::common_button_style(),
-        })
+        btn.on_press(msg).style(styles::common_button_theme())
     } else {
         btn.style(|_, _| styles::disabled_button_style())
     }
+}
+
+fn close_style_button(label: &str, msg: Message) -> Button<'_, Message> {
+    button(text(label).font(RODIN_NTLG_PRO_EB).size(28).center())
+        .width(COMMON_BUTTON_WIDTH as f32 * 1.5)
+        .height(COMMON_BUTTON_HEIGHT as f32 * 1.5)
+        .on_press(msg)
+        .style(styles::common_button_theme())
+}
+
+fn footer_tab_button(label: &str, size: f32, is_active: bool, msg: Message) -> Button<'_, Message> {
+    button(text(label).font(RODIN_NTLG_PRO_EB).size(size).center())
+        .width(COMMON_BUTTON_WIDTH as f32 * 1.25)
+        .height(COMMON_BUTTON_HEIGHT as f32 * 1.25)
+        .on_press(msg)
+        .style(move |_, status| match status {
+            button::Status::Hovered => styles::hovered_red_green_button_style(is_active),
+            _ => styles::red_green_button_style(is_active),
+        })
+}
+
+fn visit_button(label: &str, msg: Message) -> Button<'_, Message> {
+    button(text(label).font(RODIN_NTLG_PRO_EB).size(12).center())
+        .width(COMMON_BUTTON_WIDTH as f32 / 1.2)
+        .height(COMMON_BUTTON_HEIGHT)
+        .on_press(msg)
+        .style(styles::common_button_theme())
+}
+
+/// Shared tail of every CTGP footer-info text block: font, sizing, and positioning.
+fn info_paragraph<'a>(content: String, color: Color, size: f32, x: u32, y: u32) -> Element<'a, Message> {
+    let text = text(content)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(size)
+        .width(930)
+        .height(400)
+        .color(color);
+
+    positioned(text, x, y)
+}
+
+fn mii_label<'a>(label: &'a str, size: f32) -> Element<'a, Message> {
+    text(label).font(CTMKF).color(Color::WHITE).size(size).into()
+}
+
+fn mii_value<'a>(value: impl std::fmt::Display, size: f32) -> Element<'a, Message> {
+    text(value.to_string())
+        .font(CTMKF)
+        .color(Color::WHITE)
+        .size(size)
+        .align_x(Alignment::End)
+        .into()
 }
 
 pub fn background(
@@ -86,10 +138,7 @@ pub fn select_ghost_button() -> Element<'static, Message> {
     .width(COMMON_BUTTON_WIDTH)
     .height(COMMON_BUTTON_HEIGHT)
     .on_press(Message::LoadGhost)
-    .style(|_, status| match status {
-        button::Status::Hovered => styles::hovered_button_style(),
-        _ => styles::common_button_style(),
-    });
+    .style(styles::common_button_theme());
     positioned(btn, 507, 80)
 }
 
@@ -110,73 +159,47 @@ pub fn save_as_button(ghost_is_loaded: bool) -> Element<'static, Message> {
 }
 
 pub fn close_edit_button() -> Element<'static, Message> {
-    let btn = button(text("Close").font(RODIN_NTLG_PRO_EB).size(28).center())
-        .width(COMMON_BUTTON_WIDTH as f32 * 1.5)
-        .height(COMMON_BUTTON_HEIGHT as f32 * 1.5)
-        .on_press(Message::ToggleEditMenu)
-        .style(|_, status| match status {
-            button::Status::Hovered => styles::hovered_button_style(),
-            _ => styles::common_button_style(),
-        });
-
-    positioned(btn, 892, 551)
+    let (x, y) = CLOSE_BUTTON_POS;
+    positioned(close_style_button("Close", Message::ToggleEditMenu), x, y)
 }
 
 pub fn ctgp_footer_identity_button(is_active: bool) -> Element<'static, Message> {
-    let btn = button(text("Identity").font(RODIN_NTLG_PRO_EB).size(28).center())
-        .width(COMMON_BUTTON_WIDTH as f32 * 1.25)
-        .height(COMMON_BUTTON_HEIGHT as f32 * 1.25)
-        .on_press(Message::SetActiveFooterTab(FooterTab::CtgpIdentity))
-        .style(move |_, status| match status {
-            button::Status::Hovered => styles::hovered_red_green_button_style(is_active),
-            _ => styles::red_green_button_style(is_active),
-        });
-
+    let btn = footer_tab_button(
+        "Identity",
+        28.0,
+        is_active,
+        Message::SetActiveFooterTab(FooterTab::CtgpIdentity),
+    );
     positioned(btn, 170, 115)
 }
 
 pub fn ctgp_footer_time_info_button(is_active: bool) -> Element<'static, Message> {
-    let btn = button(text("Time").font(RODIN_NTLG_PRO_EB).size(28).center())
-        .width(COMMON_BUTTON_WIDTH as f32 * 1.25)
-        .height(COMMON_BUTTON_HEIGHT as f32 * 1.25)
-        .on_press(Message::SetActiveFooterTab(FooterTab::CtgpTimeInfo))
-        .style(move |_, status| match status {
-            button::Status::Hovered => styles::hovered_red_green_button_style(is_active),
-            _ => styles::red_green_button_style(is_active),
-        });
-
+    let btn = footer_tab_button(
+        "Time",
+        28.0,
+        is_active,
+        Message::SetActiveFooterTab(FooterTab::CtgpTimeInfo),
+    );
     positioned(btn, 375, 115)
 }
 
 pub fn ctgp_footer_race_events_button(is_active: bool) -> Element<'static, Message> {
-    let btn = button(
-        text("Race Events")
-            .font(RODIN_NTLG_PRO_EB)
-            .size(22)
-            .center(),
-    )
-    .width(COMMON_BUTTON_WIDTH as f32 * 1.25)
-    .height(COMMON_BUTTON_HEIGHT as f32 * 1.25)
-    .on_press(Message::SetActiveFooterTab(FooterTab::CtgpRaceEvents))
-    .style(move |_, status| match status {
-        button::Status::Hovered => styles::hovered_red_green_button_style(is_active),
-        _ => styles::red_green_button_style(is_active),
-    });
-
+    let btn = footer_tab_button(
+        "Race Events",
+        22.0,
+        is_active,
+        Message::SetActiveFooterTab(FooterTab::CtgpRaceEvents),
+    );
     positioned(btn, 580, 115)
 }
 
 pub fn close_footer_info_button() -> Element<'static, Message> {
-    let btn = button(text("Close").font(RODIN_NTLG_PRO_EB).size(28).center())
-        .width(COMMON_BUTTON_WIDTH as f32 * 1.5)
-        .height(COMMON_BUTTON_HEIGHT as f32 * 1.5)
-        .on_press(Message::ToggleFooterInfoMenu)
-        .style(|_, status| match status {
-            button::Status::Hovered => styles::hovered_button_style(),
-            _ => styles::common_button_style(),
-        });
-
-    positioned(btn, 892, 551)
+    let (x, y) = CLOSE_BUTTON_POS;
+    positioned(
+        close_style_button("Close", Message::ToggleFooterInfoMenu),
+        x,
+        y,
+    )
 }
 
 pub fn footer_info_text<'a>(
@@ -185,9 +208,9 @@ pub fn footer_info_text<'a>(
 ) -> Element<'a, Message> {
     let mut footer_info_view = stack!();
 
-    if let Some(footer) = &ghost.footer() {
+    if let Some(footer) = ghost.footer() {
         match footer {
-            &FooterType::CTGPFooter(ctgp_footer) => match active_footer_tab {
+            FooterType::CTGPFooter(ctgp_footer) => match active_footer_tab {
                 FooterTab::CtgpIdentity => {
                     footer_info_view =
                         footer_info_view.push(ctgp_identity_info_element(ctgp_footer));
@@ -242,16 +265,18 @@ pub fn footer_info_text<'a>(
                         footer_info_view = footer_info_view
                             .push(ctgp_anti_tas_deliberately_disabled_element(disabled));
                     }
+
+                    if let Some(intersections) = ctgp_footer.lap_split_dubious_intersections() {
+                        footer_info_view =
+                            footer_info_view.push(ctgp_lap_dubious_intersection_element(intersections));
+                    }
                 }
 
                 _ => (),
             },
 
-            &FooterType::SPFooter(_sp_footer) => match active_footer_tab {
-                _ => (),
-            },
-
-            &FooterType::Unknown(_) => (),
+            FooterType::SPFooter(_) => (),
+            FooterType::Unknown(_) => (),
         }
     }
 
@@ -282,7 +307,7 @@ pub fn ctgp_identity_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, M
     )
     .unwrap();
 
-    if let Some(disc_region) = &ctgp_footer.disc_region() {
+    if let Some(disc_region) = ctgp_footer.disc_region() {
         write!(s, "\nDisc region: {}", disc_region_string(disc_region)).unwrap();
     }
 
@@ -305,14 +330,8 @@ pub fn ctgp_identity_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, M
 
     write!(s, "\nPossible CTGP release versions: {}", release_versions).unwrap();
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(22)
-        .width(930)
-        .height(400)
-        .color(Color::from_rgba8(128, 128, 128, 1.0));
-
-    positioned(text, 170, 185)
+    let (x, y) = FOOTER_INFO_ORIGIN;
+    info_paragraph(s, styles::grey_text(), 22.0, x, y)
 }
 
 pub fn ctgp_exact_time_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
@@ -326,14 +345,8 @@ pub fn ctgp_exact_time_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a,
         write!(s, "\n\tLap {}:\t{}", idx + 1, exact_lap_time).unwrap();
     }
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(Color::from_rgba8(128, 128, 128, 1.0));
-
-    positioned(text, 170, 185)
+    let (x, y) = FOOTER_INFO_ORIGIN;
+    info_paragraph(s, styles::grey_text(), 20.0, x, y)
 }
 
 pub fn ctgp_rtc_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
@@ -362,16 +375,9 @@ pub fn ctgp_rtc_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Messag
     let seconds = (total_ms % 60_000) / 1_000;
     let millis = total_ms % 1_000;
 
-    write!(s, "\nRun duration: {}m {}s {}ms", minutes, seconds, millis,).unwrap();
+    write!(s, "\nRun duration: {}m {}s {}ms", minutes, seconds, millis).unwrap();
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(Color::from_rgba8(128, 128, 128, 1.0));
-
-    positioned(text, 170, 515)
+    info_paragraph(s, styles::grey_text(), 20.0, 170, 515)
 }
 
 pub fn ctgp_pause_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
@@ -396,14 +402,7 @@ pub fn ctgp_pause_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Mess
         write!(s, "\n\nPause times:").unwrap();
     }
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(Color::from_rgba8(128, 128, 128, 1.0));
-
-    positioned(text, 700, 185)
+    info_paragraph(s, styles::grey_text(), 20.0, 700, 185)
 }
 
 pub fn ctgp_pause_time_list_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
@@ -411,7 +410,7 @@ pub fn ctgp_pause_time_list_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a,
         text(pause_time.to_string())
             .font(RODIN_NTLG_PRO_EB)
             .size(20)
-            .color(Color::from_rgba8(128, 128, 128, 1.0))
+            .color(styles::grey_text())
             .into()
     }))
     .spacing(2)
@@ -423,84 +422,45 @@ pub fn ctgp_pause_time_list_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a,
 }
 
 pub fn ctgp_final_lap_flag_element<'a>(intersection: bool) -> Element<'a, Message> {
-    use std::fmt::Write;
-    let mut s = String::new();
-    write!(s, "Final lap dubious intersection? \t{}", intersection).unwrap();
-
+    let s = format!("Final lap dubious intersection? \t{}", intersection);
     let color = if intersection {
-        Color::from_rgba8(255, 0, 0, 1.0)
+        styles::alarm_color()
     } else {
-        Color::from_rgba8(128, 128, 128, 1.0)
+        styles::grey_text()
     };
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(color);
-
-    positioned(text, 170, 419)
+    info_paragraph(s, color, 20.0, 170, 419)
 }
 
 pub fn ctgp_usb_gamecube_element<'a>(enabled: bool) -> Element<'a, Message> {
-    use std::fmt::Write;
-    let mut s = String::new();
-    write!(s, "USB Gamecube enabled?\t\t\t{}", enabled).unwrap();
-
+    let s = format!("USB Gamecube enabled?\t\t\t{}", enabled);
     let color = if enabled {
-        Color::from_rgba8(128, 0, 128, 1.0)
+        styles::notice_color()
     } else {
-        Color::from_rgba8(128, 128, 128, 1.0)
+        styles::grey_text()
     };
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(color);
-
-    positioned(text, 170, 445)
+    info_paragraph(s, color, 20.0, 170, 445)
 }
 
 pub fn ctgp_my_stuff_element<'a>(enabled: bool, used: bool) -> Element<'a, Message> {
-    use std::fmt::Write;
-    let mut s = String::new();
-    write!(s, "My Stuff enabled?\t\t\t\t{}", enabled).unwrap();
-    write!(s, "\nMy Stuff used?\t\t\t\t\t{}", used).unwrap();
+    let s = format!(
+        "My Stuff enabled?\t\t\t\t{}\nMy Stuff used?\t\t\t\t\t{}",
+        enabled, used
+    );
 
-    let color = Color::from_rgba8(128, 128, 128, 1.0);
-
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(color);
-
-    positioned(text, 170, 471)
+    info_paragraph(s, styles::grey_text(), 20.0, 170, 471)
 }
 
 pub fn ctgp_anti_tas_deliberately_disabled_element<'a>(disabled: bool) -> Element<'a, Message> {
-    use std::fmt::Write;
-    let mut s = String::new();
-    write!(s, "Anti-TAS deliberately disabled?\t{}", disabled).unwrap();
-
+    let s = format!("Anti-TAS deliberately disabled?\t{}", disabled);
     let color = if disabled {
-        Color::from_rgba8(255, 0, 0, 1.0)
+        styles::alarm_color()
     } else {
-        Color::from_rgba8(128, 128, 128, 1.0)
+        styles::grey_text()
     };
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(color);
-
-    positioned(text, 170, 523)
+    info_paragraph(s, color, 20.0, 170, 523)
 }
 
 pub fn ctgp_race_flags_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Message> {
@@ -508,134 +468,99 @@ pub fn ctgp_race_flags_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Mess
     let mut s = String::new();
 
     write!(s, "Respawns?\t\t\t\t\t{}", ctgp_footer.respawns()).unwrap();
-    write!(s, "\nMii name replaced?\t\t\t\t{}", ctgp_footer.has_name_replaced()).unwrap();
-    write!(s, "\nMii data replaced?\t\t\t\t{}", ctgp_footer.has_mii_data_replaced()).unwrap();
+    write!(
+        s,
+        "\nMii name replaced?\t\t\t\t{}",
+        ctgp_footer.has_name_replaced()
+    )
+    .unwrap();
+    write!(
+        s,
+        "\nMii data replaced?\t\t\t\t{}",
+        ctgp_footer.has_mii_data_replaced()
+    )
+    .unwrap();
     write!(s, "\nOut of bounds?\t\t\t\t\t{}", ctgp_footer.went_oob()).unwrap();
     write!(s, "\nCannoned?\t\t\t\t\t{}", ctgp_footer.cannoned()).unwrap();
 
-    let color = Color::from_rgba8(128, 128, 128, 1.0);
-
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(color);
-
-    positioned(text, 170, 185)
+    let (x, y) = FOOTER_INFO_ORIGIN;
+    info_paragraph(s, styles::grey_text(), 20.0, x, y)
 }
 
 pub fn ctgp_potentially_cheated_element<'a>(cheated: bool) -> Element<'a, Message> {
-    use std::fmt::Write;
-    let mut s = String::new();
-    write!(s, "Potentially cheated? \t\t\t{}", cheated).unwrap();
-
+    let s = format!("Potentially cheated? \t\t\t{}", cheated);
     let color = if cheated {
-        Color::from_rgba8(255, 0, 0, 1.0)
+        styles::alarm_color()
     } else {
-        Color::from_rgba8(128, 128, 128, 1.0)
+        styles::grey_text()
     };
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(color);
-
-    positioned(text, 170, 315)
+    info_paragraph(s, color, 20.0, 170, 315)
 }
 
 pub fn ctgp_potential_rapidfire_element<'a>(rapidfire: bool) -> Element<'a, Message> {
-    use std::fmt::Write;
-    let mut s = String::new();
-    write!(s, "Potential rapidfire?\t\t\t\t{}", rapidfire).unwrap();
-
+    let s = format!("Potential rapidfire?\t\t\t\t{}", rapidfire);
     let color = if rapidfire {
-        Color::from_rgba8(255, 0, 0, 1.0)
+        styles::alarm_color()
     } else {
-        Color::from_rgba8(128, 128, 128, 1.0)
+        styles::grey_text()
     };
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(color);
-
-    positioned(text, 170, 341)
+    info_paragraph(s, color, 20.0, 170, 341)
 }
 
 pub fn ctgp_potential_slowdown_element<'a>(slowdown: bool) -> Element<'a, Message> {
-    use std::fmt::Write;
-    let mut s = String::new();
-    write!(s, "Potential slowdown?\t\t\t{}", slowdown).unwrap();
-
+    let s = format!("Potential slowdown?\t\t\t{}", slowdown);
     let color = if slowdown {
-        Color::from_rgba8(255, 0, 0, 1.0)
+        styles::alarm_color()
     } else {
-        Color::from_rgba8(128, 128, 128, 1.0)
+        styles::grey_text()
     };
 
-    let text = text(s)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(20)
-        .width(930)
-        .height(400)
-        .color(color);
+    info_paragraph(s, color, 20.0, 170, 367)
+}
 
-    positioned(text, 170, 367)
+pub fn ctgp_lap_dubious_intersection_element<'a>(intersections: &[bool]) -> Element<'a, Message> {
+    let x = 720;
+    use std::fmt::Write;
+    let mut stack = stack![];
+    let mut s = String::new();
+    write!(s, "Lap split dubious intersections:").unwrap();
+
+    let text = info_paragraph(s, styles::grey_text(), 20.0, x, FOOTER_INFO_ORIGIN.1);
+    stack = stack.push(text);
+
+    for (idx, intersection) in intersections.iter().enumerate() {
+        let t = format!("\tLap {}:\t {}", idx + 1, intersection);
+        let color = if *intersection {
+            styles::alarm_color()
+        } else {
+            styles::grey_text()
+        };
+
+        let base = FOOTER_INFO_ORIGIN.1 + 26;
+
+        let text = info_paragraph(t, color, 20.0, x, base + (idx as u32 * 26));
+        stack = stack.push(text);
+    }
+    stack.into()
 }
 
 pub fn visit_ctgp_leaderboard_button() -> Element<'static, Message> {
-    let btn = button(
-        text("Visit CTGP Leaderboard")
-            .font(RODIN_NTLG_PRO_EB)
-            .size(12)
-            .center(),
-    )
-    .width(COMMON_BUTTON_WIDTH as f32 / 1.2)
-    .height(COMMON_BUTTON_HEIGHT)
-    .on_press(Message::VisitCtgpLeaderboard)
-    .style(|_, status| match status {
-        button::Status::Hovered => styles::hovered_button_style(),
-        _ => styles::common_button_style(),
-    });
+    let btn = visit_button(
+        "Visit CTGP Leaderboard",
+        Message::OpenCtgpLink(CtgpLink::Leaderboard),
+    );
     positioned(btn, 970, 249)
 }
 
 pub fn visit_ctgp_ghost_page_button() -> Element<'static, Message> {
-    let btn = button(
-        text("Visit Ghost Page")
-            .font(RODIN_NTLG_PRO_EB)
-            .size(12)
-            .center(),
-    )
-    .width(COMMON_BUTTON_WIDTH as f32 / 1.2)
-    .height(COMMON_BUTTON_HEIGHT)
-    .on_press(Message::VisitCtgpGhostPage)
-    .style(|_, status| match status {
-        button::Status::Hovered => styles::hovered_button_style(),
-        _ => styles::common_button_style(),
-    });
+    let btn = visit_button("Visit Ghost Page", Message::OpenCtgpLink(CtgpLink::Ghost));
     positioned(btn, 970, 322)
 }
 
 pub fn visit_ctgp_player_page_button() -> Element<'static, Message> {
-    let btn = button(
-        text("Visit Player Page")
-            .font(RODIN_NTLG_PRO_EB)
-            .size(12)
-            .center(),
-    )
-    .width(COMMON_BUTTON_WIDTH as f32 / 1.2)
-    .height(COMMON_BUTTON_HEIGHT)
-    .on_press(Message::VisitCtgpPlayerPage)
-    .style(|_, status| match status {
-        button::Status::Hovered => styles::hovered_button_style(),
-        _ => styles::common_button_style(),
-    });
+    let btn = visit_button("Visit Player Page", Message::OpenCtgpLink(CtgpLink::Player));
     positioned(btn, 970, 394)
 }
 
@@ -791,9 +716,14 @@ pub fn vehicle_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Eleme
 
 pub fn lap_splits_box<'a>(lap_splits: &[InGameTime]) -> Element<'a, Message> {
     use std::fmt::Write;
-    let mut lap_splits_text = format!("Lap 1:   {}", lap_splits[0]);
 
-    for (idx, lap) in lap_splits[1..].iter().enumerate() {
+    let Some((first, rest)) = lap_splits.split_first() else {
+        return positioned(Space::new(), 30, 135);
+    };
+
+    let mut lap_splits_text = format!("Lap 1:   {}", first);
+
+    for (idx, lap) in rest.iter().enumerate() {
         write!(
             lap_splits_text,
             "\nLap {}:{}{}",
@@ -837,133 +767,49 @@ pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
     let element_y_pos = if cfg!(target_os = "macos") { 430 } else { 391 };
 
     let label_col = column![
-        text("Mii Info")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size * 1.5),
-        text("Creator:")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size),
-        text("Creation date:")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size),
-        text("Type:")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size),
-        text("Gender:")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size),
-        text("Birthday:")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size),
-        /*
-        text("Height:")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size),
-        text("Weight:")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size),
-        */
-        text("Favorite color:")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size),
-        text("Favorite Mii?")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size),
+        mii_label("Mii Info", font_size * 1.5),
+        mii_label("Creator:", font_size),
+        mii_label("Creation date:", font_size),
+        mii_label("Type:", font_size),
+        mii_label("Gender:", font_size),
+        mii_label("Birthday:", font_size),
+        mii_label("Favorite color:", font_size),
+        mii_label("Favorite Mii?", font_size),
     ];
 
+    let birthday = if let Some(month) = mii.birthday().month()
+        && let Some(day) = mii.birthday().day()
+    {
+        format!("{:0>2}/{:0>2}", month, day)
+    } else {
+        String::from("Not set")
+    };
+
     let value_col = column![
-        text(" ")
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size * 1.5),
-        text(if !mii.creator_name().is_empty() {
-            mii.creator_name()
-        } else {
-            "—"
-        })
-        .font(CTMKF)
-        .color(Color::WHITE)
-        .size(font_size)
-        .align_x(Alignment::End),
-        text(mii.creation_date().to_string())
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size)
-            .align_x(Alignment::End),
-        text(mii.mii_type().to_string())
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size)
-            .align_x(Alignment::End),
-        text(if mii.is_girl() { "Female" } else { "Male" })
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size)
-            .align_x(Alignment::End),
-        text(
-            if let Some(month) = mii.birthday().month()
-                && let Some(day) = mii.birthday().day()
-            {
-                format!("{:0>2}/{:0>2}", month, day)
+        mii_value("", font_size * 1.5),
+        mii_value(
+            if !mii.creator_name().is_empty() {
+                mii.creator_name()
             } else {
-                String::from("Not set")
-            }
-        )
-        .font(CTMKF)
-        .color(Color::WHITE)
-        .size(font_size)
-        .align_x(Alignment::End),
-        /*
-        text(format!(
-            "{} ({:.1}%)",
-            mii.build().height(),
-            mii.build().height() as f32 / 1.27 // 127 is max height/weight
-        ))
-        .font(CTMKF)
-        .color(Color::WHITE)
-        .size(font_size)
-        .align_x(Alignment::End),
-        text(format!(
-            "{} ({:.1}%)",
-            mii.build().weight(),
-            mii.build().weight() as f32 / 1.27
-        ))
-        .font(CTMKF)
-        .color(Color::WHITE)
-        .size(font_size)
-        .align_x(Alignment::End),
-        */
-        text(favorite_color_string(mii.favorite_color()))
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size)
-            .align_x(Alignment::End),
-        text(mii.is_favorite())
-            .font(CTMKF)
-            .color(Color::WHITE)
-            .size(font_size)
-            .align_x(Alignment::End),
+                "—"
+            },
+            font_size
+        ),
+        mii_value(mii.creation_date(), font_size),
+        mii_value(mii.mii_type(), font_size),
+        mii_value(if mii.is_girl() { "Female" } else { "Male" }, font_size),
+        mii_value(birthday, font_size),
+        mii_value(favorite_color_string(mii.favorite_color()), font_size),
+        mii_value(mii.is_favorite(), font_size),
     ]
     .align_x(Alignment::End)
     .width(149);
 
     let content = row![label_col, value_col].spacing(10);
 
-    let mii_info_element = container(content)
-        .padding(10)
-        .style(styles::info_box_style());
+    let mii_info_element = container(content).padding(10).style(styles::info_box_style());
 
-    positioned(mii_info_element, 30, element_y_pos) /* 367 with height and weight shown */
+    positioned(mii_info_element, 30, element_y_pos)
 }
 
 pub fn shroomstrat_box<'a>(shroomstrat: Shroomstrat) -> Element<'a, Message> {
@@ -1084,10 +930,7 @@ pub fn external_footer_button<'a>(ghost: &'a Ghost) -> Option<Element<'a, Messag
         .width(263)
         .height(COMMON_BUTTON_HEIGHT)
         .on_press(Message::ToggleFooterInfoMenu)
-        .style(|_, status| match status {
-            button::Status::Hovered => styles::hovered_button_style(),
-            _ => styles::common_button_style(),
-        });
+        .style(styles::common_button_theme());
 
     Some(positioned(btn, 508, 446))
 }

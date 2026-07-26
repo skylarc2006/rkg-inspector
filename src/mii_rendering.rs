@@ -1,5 +1,26 @@
 //! Adapted from <https://github.com/TeamWheelWizard/WheelWizard/blob/Offline-mii-rendering/WheelWizard/Features/MiiImages/MiiStudioDataSerializer.cs>
 
+use iced::widget::image;
+
+fn tokio_runtime() -> &'static tokio::runtime::Runtime {
+    static RT: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
+    RT.get_or_init(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+    })
+}
+
+pub async fn get_mii_image_handle(mii_data: Vec<u8>) -> Option<image::Handle> {
+    let url = get_mii_studio_url(&mii_data);
+    let bytes = tokio_runtime()
+        .spawn(async move { reqwest::get(url).await.ok()?.bytes().await.ok() })
+        .await
+        .ok()??;
+    Some(image::Handle::from_bytes(bytes))
+}
+
 /// Maps a Wii Mii facial feature index (0–11) to a Mii Studio makeup value.
 const MAKEUP_MAP: [u8; 12] = [0, 1, 6, 9, 0, 0, 0, 0, 0, 10, 0, 0];
 
@@ -52,6 +73,10 @@ fn read_u32_be(buf: &[u8], offset: usize) -> u32 {
 /// Parses the Wii Mii data and generates the 46-byte studio data array.
 fn generate_studio_data_array(buf: &[u8]) -> [u8; 46] {
     let mut studio = [0u8; 46];
+
+    if buf.len() < 0x36 {
+        return studio;
+    }
 
     // --- Basic Info ---
     let tmp_u16_0 = read_u16_be(buf, 0);

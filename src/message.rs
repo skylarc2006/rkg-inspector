@@ -4,6 +4,13 @@ use iced::widget::image;
 
 use crate::ui::footer_tab::FooterTab;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CtgpLink {
+    Leaderboard,
+    Ghost,
+    Player,
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     LoadGhost,
@@ -19,9 +26,7 @@ pub enum Message {
     MiiSaved(Option<PathBuf>),
     MiiHandleLoaded(Option<image::Handle>),
     SetActiveFooterTab(FooterTab),
-    VisitCtgpLeaderboard,
-    VisitCtgpGhostPage,
-    VisitCtgpPlayerPage,
+    OpenCtgpLink(CtgpLink),
     GetCtgpTrackName,
     CtgpTrackNameLoaded(Option<String>),
 }

@@ -6,6 +6,7 @@ use crate::app::RkgInspector;
 use crate::message::Message;
 
 pub mod app;
+pub mod chadsoft;
 pub mod files;
 pub mod helpers;
 pub mod link_type;

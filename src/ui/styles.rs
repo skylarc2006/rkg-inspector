@@ -6,6 +6,26 @@ use iced::{
 
 const BORDER_WIDTH: f32 = 3.5;
 
+pub fn grey_text() -> Color {
+    Color::from_rgba8(128, 128, 128, 1.0)
+}
+
+pub fn alarm_color() -> Color {
+    Color::from_rgba8(255, 0, 0, 1.0)
+}
+
+pub fn notice_color() -> Color {
+    Color::from_rgba8(128, 0, 128, 1.0)
+}
+
+/// The button style/hover-style pair used by every plain (non-toggle) button.
+pub fn common_button_theme() -> impl Fn(&iced::Theme, button::Status) -> button::Style {
+    |_, status| match status {
+        button::Status::Hovered => hovered_button_style(),
+        _ => common_button_style(),
+    }
+}
+
 pub fn common_button_style() -> button::Style {
     button::Style {
         background: Some(Background::Color(Color::from_rgba8(0, 0, 0, 0.5))),
