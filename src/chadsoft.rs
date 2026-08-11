@@ -64,27 +64,77 @@ pub fn chadsoft_player_link(player_id: u64, link_type: LinkType) -> String {
     format!("https://chadsoft.co.uk/time-trials/players/{byte_1:02X}/{remaining_bytes}.{extension}")
 }
 
-// There is code fully implemented for custom track name fetching via Chadsoft's JSON API,
-// but unfortunately is currently unusable as Chadsoft's JSON API is extremely unreliable
-// or non-functional. Not currently wired up to any message/button.
+// Chadsoft's leaderboard JSON endpoint embeds every recorded ghost for the track (which can
+// run into the megabytes for popular custom tracks) even though the track name/version we
+// actually want sits in the first few hundred bytes, right before the `"ghosts"` array. Rather
+// than downloading and parsing the entire payload (slow and prone to timing out), the response
+// is streamed and truncated as soon as the `"ghosts"` key is seen, then parsed as a small,
+// self-contained JSON object.
+use futures_util::StreamExt;
+use std::time::Duration;
+
+const TRACK_NAME_FETCH_ATTEMPTS: u32 = 3;
+const TRACK_NAME_FETCH_TIMEOUT: Duration = Duration::from_secs(10);
+/// Safety cap on how many leading bytes of the response are buffered while looking for the
+/// `"ghosts"` key, in case an unexpected response shape never contains it.
+const HEADER_SCAN_CAP: usize = 64 * 1024;
+const GHOSTS_KEY: &[u8] = b",\"ghosts\":";
+
 pub async fn fetch_ctgp_track_name(
     slot_id: SlotId,
     track_sha1: Vec<u8>,
     category: Category,
 ) -> Option<String> {
     let json_link = chadsoft_leaderboard_link(slot_id, &track_sha1, category, LinkType::Json);
-    let json: serde_json::Value = reqwest::get(json_link).await.ok()?.json().await.ok()?;
+    let client = reqwest::Client::builder()
+        .timeout(TRACK_NAME_FETCH_TIMEOUT)
+        .build()
+        .ok()?;
 
-    let mut track_name = String::new();
-    if let Some(t) = json["name"].as_str() {
-        track_name.push_str(t);
-    } else {
-        track_name.push_str(&array_to_hex_string(&track_sha1));
+    let mut json = None;
+    for attempt in 0..TRACK_NAME_FETCH_ATTEMPTS {
+        json = fetch_leaderboard_header(&client, &json_link).await;
+        if json.is_some() || attempt + 1 == TRACK_NAME_FETCH_ATTEMPTS {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
+    let json = json?;
+
+    let name = json["name"]
+        .as_str()
+        .map(String::from)
+        .unwrap_or_else(|| array_to_hex_string(&track_sha1));
+
+    Some(match json["version"].as_str() {
+        Some(version) => format!("{name} ({version})"),
+        None => name,
+    })
+}
+
+/// Fetches just enough of the leaderboard JSON response to read its top-level fields, without
+/// downloading the (potentially huge) trailing `"ghosts"` array.
+async fn fetch_leaderboard_header(client: &reqwest::Client, url: &str) -> Option<serde_json::Value> {
+    let response = client.get(url).send().await.ok()?;
+    if !response.status().is_success() {
+        return None;
     }
 
-    if let Some(v) = json["version"].as_str() {
-        track_name.push_str(format!("({})", v).as_str());
+    let mut buffer: Vec<u8> = Vec::new();
+    let mut stream = response.bytes_stream();
+    while buffer.len() < HEADER_SCAN_CAP {
+        let chunk = stream.next().await?.ok()?;
+        buffer.extend_from_slice(&chunk);
+
+        if let Some(idx) = buffer
+            .windows(GHOSTS_KEY.len())
+            .position(|window| window == GHOSTS_KEY)
+        {
+            buffer.truncate(idx);
+            buffer.push(b'}');
+            return serde_json::from_slice(&buffer).ok();
+        }
     }
 
-    Some(track_name)
+    None
 }

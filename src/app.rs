@@ -123,6 +123,18 @@ impl RkgInspector {
             move |handle| Message::MiiHandleLoaded(index, handle),
         );
 
+        let track_name_task = if let Some(FooterType::CTGPFooter(ctgp_footer)) = ghost.footer() {
+            let slot_id = ghost.header().slot_id();
+            let track_sha1 = ctgp_footer.track_sha1().to_vec();
+            let category = ctgp_footer.category();
+            Task::perform(
+                fetch_ctgp_track_name(slot_id, track_sha1, category),
+                move |name| Message::CtgpTrackNameLoaded(index, name),
+            )
+        } else {
+            Task::none()
+        };
+
         let edit_buffers = EditBuffers::from_header(ghost.header());
 
         self.ghosts.push(LoadedGhost {
@@ -139,7 +151,7 @@ impl RkgInspector {
         self.active_index = index;
         self.sync_active_footer_tab();
 
-        mii_task
+        Task::batch([mii_task, track_name_task])
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -320,26 +332,6 @@ impl RkgInspector {
                     }
                 }
                 Task::none()
-            }
-
-            // Chadsoft's JSON API for looking up custom track names is currently
-            // extremely unreliable/non-functional, so this is not wired up to any
-            // button yet. Left in place to pick back up once the API is usable.
-            Message::GetCtgpTrackName => {
-                let index = self.active_index;
-                self.with_loaded(|loaded| {
-                    if let Some(FooterType::CTGPFooter(ctgp_footer)) = loaded.ghost.footer() {
-                        let slot_id = loaded.ghost.header().slot_id();
-                        let track_sha1 = ctgp_footer.track_sha1().to_vec();
-                        let category = ctgp_footer.category();
-                        Task::perform(
-                            fetch_ctgp_track_name(slot_id, track_sha1, category),
-                            move |name| Message::CtgpTrackNameLoaded(index, name),
-                        )
-                    } else {
-                        Task::none()
-                    }
-                })
             }
 
             Message::CtgpTrackNameLoaded(index, track_name) => {

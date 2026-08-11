@@ -35,7 +35,6 @@ pub enum Message {
     MiiHandleLoaded(usize, Option<image::Handle>),
     SetActiveFooterTab(FooterTab),
     OpenCtgpLink(CtgpLink),
-    GetCtgpTrackName,
     CtgpTrackNameLoaded(usize, Option<String>),
     EditFinishTimeChanged(String),
     EditLapSplitChanged(usize, String),
