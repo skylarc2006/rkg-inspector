@@ -45,12 +45,11 @@ pub fn location_table() -> &'static [CountryLocations] {
 }
 
 fn build_location_table() -> Vec<CountryLocations> {
-    const VERSIONS: [Version; 5] = [
+    const VERSIONS: [Version; 4] = [
         Version::Vanilla,
         Version::ER10,
         Version::ER11,
         Version::ER12,
-        Version::ER13,
     ];
 
     let mut table = Vec::new();
