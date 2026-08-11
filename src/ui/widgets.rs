@@ -156,6 +156,34 @@ pub fn select_ghost_button() -> Element<'static, Message> {
     positioned(btn, 507, 80)
 }
 
+pub fn previous_ghost_button(enabled: bool) -> Element<'static, Message> {
+    positioned(
+        ghost_action_button("< Previous", enabled, Message::PreviousGhost),
+        910,
+        606,
+    )
+}
+
+pub fn next_ghost_button(enabled: bool) -> Element<'static, Message> {
+    positioned(
+        ghost_action_button("Next >", enabled, Message::NextGhost),
+        1130,
+        606,
+    )
+}
+
+pub fn ghost_counter_text(active_index: usize, ghost_count: usize) -> Element<'static, Message> {
+    let t = text(format!("{} / {}", active_index + 1, ghost_count))
+        .align_x(Alignment::Center)
+        .align_y(Alignment::Center)
+        .width(80)
+        .height(COMMON_BUTTON_HEIGHT)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(16)
+        .color(Color::WHITE);
+    positioned(t, 1049, 606)
+}
+
 pub fn toggle_edit_button(ghost_is_loaded: bool) -> Element<'static, Message> {
     positioned(
         ghost_action_button("Edit Ghost", ghost_is_loaded, Message::ToggleEditMenu),
