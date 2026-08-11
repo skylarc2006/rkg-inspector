@@ -6,7 +6,7 @@ use iced::{
     },
 };
 use rkg_utils::{
-    CTGPFooter, FooterType, Ghost, Mii, Shroomstrat,
+    CTGPFooter, FooterType, Ghost, Mii, SPFooter, Shroomstrat,
     footer::ctgp_footer::Category,
     header::{Controller, Date, InGameTime},
 };
@@ -69,7 +69,13 @@ fn visit_button(label: &str, msg: Message) -> Button<'_, Message> {
 }
 
 /// Shared tail of every CTGP footer-info text block: font, sizing, and positioning.
-fn info_paragraph<'a>(content: String, color: Color, size: f32, x: u32, y: u32) -> Element<'a, Message> {
+fn info_paragraph<'a>(
+    content: String,
+    color: Color,
+    size: f32,
+    x: u32,
+    y: u32,
+) -> Element<'a, Message> {
     let text = text(content)
         .font(RODIN_NTLG_PRO_EB)
         .size(size)
@@ -81,7 +87,11 @@ fn info_paragraph<'a>(content: String, color: Color, size: f32, x: u32, y: u32) 
 }
 
 fn mii_label<'a>(label: &'a str, size: f32) -> Element<'a, Message> {
-    text(label).font(CTMKF).color(Color::WHITE).size(size).into()
+    text(label)
+        .font(CTMKF)
+        .color(Color::WHITE)
+        .size(size)
+        .into()
 }
 
 fn mii_value<'a>(value: impl std::fmt::Display, size: f32) -> Element<'a, Message> {
@@ -193,6 +203,36 @@ pub fn ctgp_footer_race_events_button(is_active: bool) -> Element<'static, Messa
     positioned(btn, 580, 115)
 }
 
+pub fn sp_footer_identity_button(is_active: bool) -> Element<'static, Message> {
+    let btn = footer_tab_button(
+        "Identity",
+        28.0,
+        is_active,
+        Message::SetActiveFooterTab(FooterTab::SpIdentity),
+    );
+    positioned(btn, 170, 115)
+}
+
+pub fn sp_footer_time_info_button(is_active: bool) -> Element<'static, Message> {
+    let btn = footer_tab_button(
+        "Time",
+        28.0,
+        is_active,
+        Message::SetActiveFooterTab(FooterTab::SpTimeInfo),
+    );
+    positioned(btn, 375, 115)
+}
+
+pub fn sp_footer_race_events_button(is_active: bool) -> Element<'static, Message> {
+    let btn = footer_tab_button(
+        "Race Events",
+        22.0,
+        is_active,
+        Message::SetActiveFooterTab(FooterTab::SpRaceEvents),
+    );
+    positioned(btn, 580, 115)
+}
+
 pub fn close_footer_info_button() -> Element<'static, Message> {
     let (x, y) = CLOSE_BUTTON_POS;
     positioned(
@@ -267,15 +307,37 @@ pub fn footer_info_text<'a>(
                     }
 
                     if let Some(intersections) = ctgp_footer.lap_split_dubious_intersections() {
-                        footer_info_view =
-                            footer_info_view.push(ctgp_lap_dubious_intersection_element(intersections));
+                        footer_info_view = footer_info_view
+                            .push(ctgp_lap_dubious_intersection_element(intersections));
                     }
                 }
 
                 _ => (),
             },
 
-            FooterType::SPFooter(_) => (),
+            FooterType::SPFooter(sp_footer) => match active_footer_tab {
+                FooterTab::SpIdentity => {
+                    footer_info_view = footer_info_view.push(sp_identity_info_element(sp_footer));
+                }
+                FooterTab::SpTimeInfo => {
+                    footer_info_view = footer_info_view.push(sp_exact_time_info_element(sp_footer));
+                }
+                FooterTab::SpRaceEvents => {
+                    footer_info_view = footer_info_view.push(sp_race_settings_element(sp_footer));
+
+                    footer_info_view = footer_info_view
+                        .push(sp_ultra_shortcut_element(sp_footer.has_ultra_shortcut()));
+
+                    footer_info_view = footer_info_view.push(sp_horizontal_wall_glitch_element(
+                        sp_footer.has_horizontal_wall_glitch(),
+                    ));
+
+                    footer_info_view =
+                        footer_info_view.push(sp_wallride_element(sp_footer.has_wallride()));
+                }
+
+                _ => (),
+            },
             FooterType::Unknown(_) => (),
         }
     }
@@ -564,6 +626,121 @@ pub fn visit_ctgp_player_page_button() -> Element<'static, Message> {
     positioned(btn, 970, 394)
 }
 
+pub fn sp_identity_info_element<'a>(sp_footer: &SPFooter) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "Footer version: {}", sp_footer.footer_version()).unwrap();
+    write!(
+        s,
+        "\n\nTrack SHA1: {}",
+        array_to_hex_string(sp_footer.track_sha1())
+    )
+    .unwrap();
+
+    let sp_versions_opt = sp_footer.possible_sp_versions();
+    let sp_versions = if let Some(sp_versions) = &sp_versions_opt {
+        if sp_versions.len() == 1 {
+            format!("{}", sp_versions[0])
+        } else {
+            format!(
+                "{} - {}",
+                sp_versions[0],
+                sp_versions[sp_versions.len() - 1]
+            )
+        }
+    } else {
+        "Unknown".to_string()
+    };
+
+    write!(s, "\n\nPossible MKW-SP versions: {}", sp_versions).unwrap();
+
+    let (x, y) = FOOTER_INFO_ORIGIN;
+    info_paragraph(s, styles::grey_text(), 22.0, x, y)
+}
+
+pub fn sp_exact_time_info_element<'a>(sp_footer: &SPFooter) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+
+    write!(s, "Exact finish time: {}", sp_footer.exact_finish_time()).unwrap();
+
+    write!(s, "\n\nExact lap splits:").unwrap();
+    for (idx, exact_lap_time) in sp_footer.exact_lap_times().iter().enumerate() {
+        write!(s, "\n\tLap {}:\t{}", idx + 1, exact_lap_time).unwrap();
+    }
+
+    let (x, y) = FOOTER_INFO_ORIGIN;
+    info_paragraph(s, styles::grey_text(), 20.0, x, y)
+}
+
+pub fn sp_race_settings_element<'a>(sp_footer: &SPFooter) -> Element<'a, Message> {
+    use std::fmt::Write;
+    let mut s = String::new();
+
+    write!(s, "200cc?\t\t\t\t\t\t{}", sp_footer.is_200cc()).unwrap();
+
+    let vanilla_mode = sp_footer
+        .is_vanilla_mode_enabled()
+        .map_or("Unknown".to_string(), |b| b.to_string());
+    write!(s, "\nVanilla mode enabled?\t\t\t{}", vanilla_mode).unwrap();
+
+    let simplified_controls = sp_footer
+        .has_simplified_controls()
+        .map_or("Unknown".to_string(), |b| b.to_string());
+    write!(
+        s,
+        "\nSimplified controls enabled?\t\t{}",
+        simplified_controls
+    )
+    .unwrap();
+
+    let mirror = sp_footer
+        .set_in_mirror()
+        .map_or("Unknown".to_string(), |b| b.to_string());
+    write!(s, "\nMirror mode?\t\t\t\t\t{}", mirror).unwrap();
+
+    let (x, y) = FOOTER_INFO_ORIGIN;
+    info_paragraph(s, styles::grey_text(), 20.0, x, y)
+}
+
+pub fn sp_ultra_shortcut_element<'a>(has_ultra_shortcut: bool) -> Element<'a, Message> {
+    let s = format!("Ultra shortcut performed?\t\t{}", has_ultra_shortcut);
+    let color = if has_ultra_shortcut {
+        styles::alarm_color()
+    } else {
+        styles::grey_text()
+    };
+
+    info_paragraph(s, color, 20.0, 170, 315)
+}
+
+pub fn sp_horizontal_wall_glitch_element<'a>(
+    has_horizontal_wall_glitch: bool,
+) -> Element<'a, Message> {
+    let s = format!(
+        "Horizontal wall glitch performed?\t{}",
+        has_horizontal_wall_glitch
+    );
+    let color = if has_horizontal_wall_glitch {
+        styles::alarm_color()
+    } else {
+        styles::grey_text()
+    };
+
+    info_paragraph(s, color, 20.0, 170, 341)
+}
+
+pub fn sp_wallride_element<'a>(has_wallride: bool) -> Element<'a, Message> {
+    let s = format!("Wallride performed?\t\t\t\t{}", has_wallride);
+    let color = if has_wallride {
+        styles::alarm_color()
+    } else {
+        styles::grey_text()
+    };
+
+    info_paragraph(s, color, 20.0, 170, 367)
+}
+
 pub fn track_name_text<'a>(
     ghost: &'a Ghost,
     custom_track_name: Option<String>,
@@ -807,7 +984,9 @@ pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
 
     let content = row![label_col, value_col].spacing(10);
 
-    let mii_info_element = container(content).padding(10).style(styles::info_box_style());
+    let mii_info_element = container(content)
+        .padding(10)
+        .style(styles::info_box_style());
 
     positioned(mii_info_element, 30, element_y_pos)
 }

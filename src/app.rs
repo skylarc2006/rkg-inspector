@@ -78,7 +78,10 @@ impl RkgInspector {
         self.active.as_ref().map_or_else(Task::none, f)
     }
 
-    fn with_loaded_mut(&mut self, f: impl FnOnce(&mut LoadedGhost) -> Task<Message>) -> Task<Message> {
+    fn with_loaded_mut(
+        &mut self,
+        f: impl FnOnce(&mut LoadedGhost) -> Task<Message>,
+    ) -> Task<Message> {
         self.active.as_mut().map_or_else(Task::none, f)
     }
 
@@ -110,9 +113,8 @@ impl RkgInspector {
                 self.screen = Screen::Main;
                 self.loading = true;
 
-                let character_handle = image_handles::get_character_image_handle(
-                    ghost.header().combo().character(),
-                );
+                let character_handle =
+                    image_handles::get_character_image_handle(ghost.header().combo().character());
                 let vehicle_handle =
                     image_handles::get_vehicle_image_handle(ghost.header().combo().vehicle());
                 let country_handle =
@@ -255,9 +257,7 @@ impl RkgInspector {
                             footer.category(),
                             LinkType::Html,
                         ),
-                        CtgpLink::Ghost => {
-                            chadsoft_ghost_link(footer.ghost_sha1(), LinkType::Html)
-                        }
+                        CtgpLink::Ghost => chadsoft_ghost_link(footer.ghost_sha1(), LinkType::Html),
                         CtgpLink::Player => {
                             chadsoft_player_link(footer.player_id(), LinkType::Html)
                         }
@@ -415,6 +415,16 @@ impl RkgInspector {
             ));
             s = s.push(widgets::ctgp_footer_race_events_button(
                 self.active_footer_tab == FooterTab::CtgpRaceEvents,
+            ));
+        } else if let Some(FooterType::SPFooter(_)) = loaded.ghost.footer() {
+            s = s.push(widgets::sp_footer_identity_button(
+                self.active_footer_tab == FooterTab::SpIdentity,
+            ));
+            s = s.push(widgets::sp_footer_time_info_button(
+                self.active_footer_tab == FooterTab::SpTimeInfo,
+            ));
+            s = s.push(widgets::sp_footer_race_events_button(
+                self.active_footer_tab == FooterTab::SpRaceEvents,
             ));
         }
 
