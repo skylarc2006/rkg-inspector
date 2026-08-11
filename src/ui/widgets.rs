@@ -1,14 +1,14 @@
 use iced::{
     Alignment, Color, Element, Length, Rectangle,
     widget::{
-        Button, Image, Space, button, column, container, image, row, scrollable, stack, svg, text,
-        tooltip,
+        Button, Image, Space, button, checkbox, column, container, image, pick_list, row,
+        scrollable, stack, svg, text, text_input, tooltip,
     },
 };
 use rkg_utils::{
     CTGPFooter, FooterType, Ghost, Mii, SPFooter, Shroomstrat,
     footer::ctgp_footer::Category,
-    header::{Controller, Date, InGameTime},
+    header::{Controller, Date, InGameTime, combo::GetWeightClass},
 };
 
 use std::{cmp::max, time::Duration};
@@ -19,6 +19,10 @@ use crate::{
     ui::{
         assets::MUSHROOM,
         constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
+        edit_data::{
+            self, CHARACTERS, CONTROLLERS, EditBuffers, GHOST_TYPES, SLOT_IDS, TRANSMISSION_MODS,
+            VEHICLES,
+        },
         fit_text::FitText,
         footer_tab::FooterTab,
         format::{disc_region_string, favorite_color_string},
@@ -1125,4 +1129,149 @@ pub fn mii_image_element<'a>(handle: &'a image::Handle) -> Element<'a, Message> 
     let img = image(handle).crop(crop).width(115);
 
     positioned(img, 345, 234)
+}
+
+fn edit_label<'a>(label: impl Into<String>) -> Element<'a, Message> {
+    text(label.into())
+        .font(RODIN_NTLG_PRO_EB)
+        .size(18)
+        .color(styles::grey_text())
+        .width(200)
+        .into()
+}
+
+fn edit_row<'a>(
+    label: impl Into<String>,
+    control: impl Into<Element<'a, Message>>,
+) -> Element<'a, Message> {
+    row![edit_label(label), control.into()]
+        .spacing(12)
+        .align_y(Alignment::Center)
+        .into()
+}
+
+
+pub fn edit_form<'a>(ghost: &'a Ghost, buffers: &'a EditBuffers) -> Element<'a, Message> {
+    let header = ghost.header();
+
+    let track_picker = pick_list(SLOT_IDS, Some(header.slot_id()), Message::EditSlotIdSelected)
+        .width(260)
+        .text_size(16);
+    let character_picker = pick_list(
+        CHARACTERS,
+        Some(header.combo().character()),
+        Message::EditCharacterSelected,
+    )
+    .width(260)
+    .text_size(16);
+    let compatible_vehicles: Vec<_> = VEHICLES
+        .into_iter()
+        .filter(|v| v.get_weight_class() == header.combo().character().get_weight_class())
+        .collect();
+    let vehicle_picker = pick_list(
+        compatible_vehicles,
+        Some(header.combo().vehicle()),
+        Message::EditVehicleSelected,
+    )
+    .width(260)
+    .text_size(16);
+    let controller_picker = pick_list(
+        CONTROLLERS,
+        Some(header.controller()),
+        Message::EditControllerSelected,
+    )
+    .width(150)
+    .text_size(16);
+    let transmission_picker = pick_list(
+        TRANSMISSION_MODS,
+        Some(header.transmission_mod()),
+        Message::EditTransmissionModSelected,
+    )
+    .width(180)
+    .text_size(16);
+    let ghost_type_picker = pick_list(
+        GHOST_TYPES,
+        Some(header.ghost_type()),
+        Message::EditGhostTypeSelected,
+    )
+    .width(260)
+    .text_size(16);
+
+    let drift_checkbox = checkbox(header.is_automatic_drift())
+        .label("Automatic drift")
+        .on_toggle(Message::EditAutomaticDriftToggled)
+        .style(|theme, status| checkbox::Style {
+            text_color: Some(Color::BLACK),
+            ..checkbox::primary(theme, status)
+        });
+
+    let finish_time_input = text_input("MM:SS.mmm", &buffers.finish_time)
+        .on_input(Message::EditFinishTimeChanged)
+        .width(140);
+
+    let date_input = text_input("YYYY-MM-DD", &buffers.date)
+        .on_input(Message::EditDateChanged)
+        .width(140);
+
+    let current_country = header.location().country();
+    let current_subregion = header.location().subregion();
+
+    let countries: Vec<_> = edit_data::location_table()
+        .iter()
+        .map(|entry| entry.country)
+        .collect();
+    let country_picker = pick_list(countries, Some(current_country), Message::EditCountrySelected)
+        .width(260)
+        .text_size(16);
+
+    let subregions: Vec<_> = edit_data::location_table()
+        .iter()
+        .find(|entry| entry.country == current_country)
+        .map(|entry| entry.options.iter().map(|o| o.subregion).collect())
+        .unwrap_or_default();
+    let subregion_picker = pick_list(
+        subregions,
+        Some(current_subregion),
+        Message::EditSubregionSelected,
+    )
+    .width(220)
+    .text_size(16);
+
+    let location_row = row![edit_label("Location"), country_picker, subregion_picker,]
+        .spacing(12)
+        .align_y(Alignment::Center);
+
+    let mut fields = column![
+        edit_row("Track", track_picker),
+        edit_row("Character", character_picker),
+        edit_row("Vehicle", vehicle_picker),
+        edit_row("Controller", controller_picker),
+        edit_row("Transmission mod", transmission_picker),
+        edit_row("Ghost type", ghost_type_picker),
+        edit_row("", drift_checkbox),
+        edit_row("Finish time", finish_time_input),
+        edit_row("Date set", date_input),
+        location_row,
+    ]
+    .spacing(14);
+
+    if !buffers.lap_splits.is_empty() {
+        fields = fields.push(
+            text("Lap splits")
+                .font(RODIN_NTLG_PRO_EB)
+                .size(18)
+                .color(styles::grey_text()),
+        );
+
+        for (idx, buffer) in buffers.lap_splits.iter().enumerate() {
+            let input = text_input("MM:SS.mmm", buffer)
+                .on_input(move |s| Message::EditLapSplitChanged(idx, s))
+                .width(140);
+            fields = fields.push(edit_row(format!("Lap {}", idx + 1), input));
+        }
+    }
+
+    let scrollable_form = scrollable(fields).height(400).width(1000);
+
+    positioned(scrollable_form, 170, 130)
 }

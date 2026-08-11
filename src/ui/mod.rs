@@ -5,6 +5,7 @@ use iced::{
 
 pub mod assets;
 pub mod constants;
+pub mod edit_data;
 pub mod fit_text;
 pub mod footer_tab;
 pub mod format;

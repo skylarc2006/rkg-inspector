@@ -2,6 +2,8 @@ use iced::widget::{image, svg};
 use iced::{Element, Length, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
 use rkg_utils::footer::FooterType;
+use rkg_utils::header::Combo;
+use rkg_utils::header::combo::GetWeightClass;
 use rkg_utils::header::mii::Mii;
 
 use crate::chadsoft::{
@@ -12,6 +14,7 @@ use crate::helpers::track_abbreviation;
 use crate::link_type::LinkType;
 use crate::message::{CtgpLink, Message};
 use crate::mii_rendering;
+use crate::ui::edit_data::{self, EditBuffers, VEHICLES, parse_date, parse_in_game_time};
 use crate::ui::footer_tab::FooterTab;
 use crate::ui::{assets, image_handles, widgets};
 
@@ -24,6 +27,7 @@ struct LoadedGhost {
     /// `None` while the Mii Studio render is still loading.
     mii_handle: Option<image::Handle>,
     custom_track_name: Option<String>,
+    edit_buffers: EditBuffers,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -135,6 +139,8 @@ impl RkgInspector {
                     Message::MiiHandleLoaded,
                 );
 
+                let edit_buffers = EditBuffers::from_header(ghost.header());
+
                 self.active = Some(LoadedGhost {
                     ghost,
                     character_handle,
@@ -142,6 +148,7 @@ impl RkgInspector {
                     country_handle,
                     mii_handle: None,
                     custom_track_name: None,
+                    edit_buffers,
                 });
 
                 mii_task
@@ -295,6 +302,124 @@ impl RkgInspector {
                 }
                 Task::none()
             }
+
+            Message::EditFinishTimeChanged(s) => self.with_loaded_mut(|loaded| {
+                if let Some(time) = parse_in_game_time(&s) {
+                    loaded.ghost.header_mut().set_finish_time(time);
+                }
+                loaded.edit_buffers.finish_time = s;
+                Task::none()
+            }),
+
+            Message::EditLapSplitChanged(idx, s) => self.with_loaded_mut(|loaded| {
+                if let Some(time) = parse_in_game_time(&s) {
+                    loaded.ghost.header_mut().set_lap_split_time(idx, time);
+                }
+                if let Some(buffer) = loaded.edit_buffers.lap_splits.get_mut(idx) {
+                    *buffer = s;
+                }
+                Task::none()
+            }),
+
+            Message::EditDateChanged(s) => self.with_loaded_mut(|loaded| {
+                if let Some(date) = parse_date(&s) {
+                    loaded.ghost.header_mut().set_date_set(date);
+                }
+                loaded.edit_buffers.date = s;
+                Task::none()
+            }),
+
+            Message::EditSlotIdSelected(slot_id) => self.with_loaded_mut(|loaded| {
+                loaded.ghost.header_mut().set_slot_id(slot_id);
+                Task::none()
+            }),
+
+            Message::EditCharacterSelected(character) => self.with_loaded_mut(|loaded| {
+                let vehicle = loaded.ghost.header().combo().vehicle();
+                let vehicle = if vehicle.get_weight_class() == character.get_weight_class() {
+                    vehicle
+                } else {
+                    VEHICLES
+                        .iter()
+                        .copied()
+                        .find(|v| v.get_weight_class() == character.get_weight_class())
+                        .unwrap_or(vehicle)
+                };
+
+                if let Ok(combo) = Combo::new(vehicle, character) {
+                    loaded.ghost.header_mut().set_combo(combo);
+                    loaded.character_handle = image_handles::get_character_image_handle(character);
+                    loaded.vehicle_handle = image_handles::get_vehicle_image_handle(vehicle);
+                }
+                Task::none()
+            }),
+
+            Message::EditVehicleSelected(vehicle) => self.with_loaded_mut(|loaded| {
+                // The vehicle picker only offers options matching the current
+                // character's weight class, so this combo is always valid.
+                let character = loaded.ghost.header().combo().character();
+                if let Ok(combo) = Combo::new(vehicle, character) {
+                    loaded.ghost.header_mut().set_combo(combo);
+                    loaded.vehicle_handle = image_handles::get_vehicle_image_handle(vehicle);
+                }
+                Task::none()
+            }),
+
+            Message::EditControllerSelected(controller) => self.with_loaded_mut(|loaded| {
+                loaded.ghost.header_mut().set_controller(controller);
+                Task::none()
+            }),
+
+            Message::EditTransmissionModSelected(transmission_mod) => {
+                self.with_loaded_mut(|loaded| {
+                    loaded
+                        .ghost
+                        .header_mut()
+                        .set_transmission_mod(transmission_mod);
+                    Task::none()
+                })
+            }
+
+            Message::EditGhostTypeSelected(ghost_type) => self.with_loaded_mut(|loaded| {
+                loaded.ghost.header_mut().set_ghost_type(ghost_type);
+                Task::none()
+            }),
+
+            Message::EditAutomaticDriftToggled(is_automatic_drift) => {
+                self.with_loaded_mut(|loaded| {
+                    loaded
+                        .ghost
+                        .header_mut()
+                        .set_automatic_drift(is_automatic_drift);
+                    Task::none()
+                })
+            }
+
+            Message::EditCountrySelected(country) => self.with_loaded_mut(|loaded| {
+                if let Some(location) = edit_data::location_table()
+                    .iter()
+                    .find(|c| c.country == country)
+                    .and_then(|c| c.options.first())
+                    .map(|o| o.location)
+                {
+                    loaded.ghost.header_mut().set_location(location);
+                    loaded.country_handle = image_handles::get_country_image_handle(country);
+                }
+                Task::none()
+            }),
+
+            Message::EditSubregionSelected(subregion) => self.with_loaded_mut(|loaded| {
+                let country = loaded.ghost.header().location().country();
+                if let Some(location) = edit_data::location_table()
+                    .iter()
+                    .find(|c| c.country == country)
+                    .and_then(|c| c.options.iter().find(|o| o.subregion == subregion))
+                    .map(|o| o.location)
+                {
+                    loaded.ghost.header_mut().set_location(location);
+                }
+                Task::none()
+            }),
         }
     }
 
@@ -379,8 +504,9 @@ impl RkgInspector {
         .width(Length::Fill)
         .height(Length::Fill);
 
-        if self.active.is_some() {
+        if let Some(loaded) = &self.active {
             s = s.push(widgets::close_edit_button());
+            s = s.push(widgets::edit_form(&loaded.ghost, &loaded.edit_buffers));
         }
 
         s.into()

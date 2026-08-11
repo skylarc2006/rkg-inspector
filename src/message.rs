@@ -1,6 +1,11 @@
 use std::path::PathBuf;
 
 use iced::widget::image;
+use rkg_utils::header::{
+    Controller, GhostType, SlotId, TransmissionMod,
+    combo::{Character, Vehicle},
+    location::constants::{Country, Subregion},
+};
 
 use crate::ui::footer_tab::FooterTab;
 
@@ -29,4 +34,16 @@ pub enum Message {
     OpenCtgpLink(CtgpLink),
     GetCtgpTrackName,
     CtgpTrackNameLoaded(Option<String>),
+    EditFinishTimeChanged(String),
+    EditLapSplitChanged(usize, String),
+    EditDateChanged(String),
+    EditSlotIdSelected(SlotId),
+    EditCharacterSelected(Character),
+    EditVehicleSelected(Vehicle),
+    EditControllerSelected(Controller),
+    EditTransmissionModSelected(TransmissionMod),
+    EditGhostTypeSelected(GhostType),
+    EditAutomaticDriftToggled(bool),
+    EditCountrySelected(Country),
+    EditSubregionSelected(Subregion),
 }
