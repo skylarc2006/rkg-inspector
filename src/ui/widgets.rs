@@ -172,6 +172,14 @@ pub fn next_ghost_button(enabled: bool) -> Element<'static, Message> {
     )
 }
 
+pub fn clear_ghosts_button(enabled: bool) -> Element<'static, Message> {
+    positioned(
+        ghost_action_button("Clear", enabled, Message::ClearGhosts),
+        1130,
+        560,
+    )
+}
+
 pub fn ghost_counter_text(active_index: usize, ghost_count: usize) -> Element<'static, Message> {
     let t = text(format!("{} / {}", active_index + 1, ghost_count))
         .align_x(Alignment::Center)

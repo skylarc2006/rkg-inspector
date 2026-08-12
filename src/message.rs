@@ -24,6 +24,7 @@ pub enum Message {
     GhostsPicked(Vec<PathBuf>),
     NextGhost,
     PreviousGhost,
+    ClearGhosts,
     ToggleEditMenu,
     ToggleFooterInfoMenu,
     SaveGhostAsFile,

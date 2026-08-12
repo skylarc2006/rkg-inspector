@@ -201,6 +201,13 @@ impl RkgInspector {
                 Task::none()
             }
 
+            Message::ClearGhosts => {
+                self.ghosts.clear();
+                self.active_index = 0;
+                self.screen = Screen::Main;
+                Task::none()
+            }
+
             Message::MiiExport => {
                 let index = self.active_index;
                 self.with_loaded(|loaded| {
@@ -482,6 +489,7 @@ impl RkgInspector {
         let has_multiple_ghosts = self.ghosts.len() > 1;
         let previous_ghost_button = widgets::previous_ghost_button(has_multiple_ghosts);
         let next_ghost_button = widgets::next_ghost_button(has_multiple_ghosts);
+        let clear_ghosts_button = widgets::clear_ghosts_button(!self.ghosts.is_empty());
         let toggle_edit_button = widgets::toggle_edit_button(self.active().is_some());
         let save_as_button = widgets::save_as_button(self.active().is_some());
 
@@ -492,6 +500,7 @@ impl RkgInspector {
             select_ghost_button,
             previous_ghost_button,
             next_ghost_button,
+            clear_ghosts_button,
             toggle_edit_button,
             save_as_button,
         )
