@@ -27,6 +27,7 @@ pub enum Message {
     ClearGhosts,
     ToggleEditMenu,
     ToggleFooterInfoMenu,
+    ToggleInputDataMenu,
     SaveGhostAsFile,
     GhostSaved(usize, Option<PathBuf>),
     MiiExport,

@@ -35,6 +35,7 @@ enum Screen {
     Main,
     EditMenu,
     FooterInfo,
+    InputDataInfo,
 }
 
 pub struct RkgInspector {
@@ -283,6 +284,15 @@ impl RkgInspector {
                 Task::none()
             }
 
+            Message::ToggleInputDataMenu => {
+                self.screen = if self.screen == Screen::InputDataInfo {
+                    Screen::Main
+                } else {
+                    Screen::InputDataInfo
+                };
+                Task::none()
+            }
+
             Message::SetActiveFooterTab(footer_tab) => {
                 self.active_footer_tab = footer_tab;
                 Task::none()
@@ -475,6 +485,7 @@ impl RkgInspector {
             Screen::Main => self.main_view(),
             Screen::EditMenu => self.edit_view(),
             Screen::FooterInfo => self.footer_info_view(),
+            Screen::InputDataInfo => self.input_data_info_view(),
         }
     }
 
@@ -532,6 +543,7 @@ impl RkgInspector {
             Some(widgets::ghost_type_box(ghost)),
             Some(widgets::controller_box(ghost.header().controller())),
             widgets::external_footer_button(ghost),
+            widgets::input_data_button(),
             loaded.mii_handle.as_ref().map(widgets::mii_image_element),
             Some(widgets::mii_import_button()),
             Some(widgets::mii_export_button()),
@@ -616,6 +628,26 @@ impl RkgInspector {
         ));
         s = s.push(widgets::close_footer_info_button());
 
+        s.into()
+    }
+
+    fn input_data_info_view(&self) -> Element<'_, Message> {
+        let background = widgets::background(
+            self.background_handle.clone(),
+            self.ghost_box_handle.clone(),
+        );
+        let info_background = widgets::info_background(self.info_background_handle.clone());
+
+        let mut s = stack!(
+            background,
+            widgets::prerelease_warning_text(),
+            widgets::rkg_inspector_text(),
+            info_background,
+        )
+        .width(Length::Fill)
+        .height(Length::Fill);
+
+        s = s.push(widgets::close_input_data_button());
         s.into()
     }
 }

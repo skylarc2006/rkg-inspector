@@ -213,6 +213,21 @@ pub fn close_edit_button() -> Element<'static, Message> {
     positioned(close_style_button("Close", Message::ToggleEditMenu), x, y)
 }
 
+pub fn close_input_data_button() -> Element<'static, Message> {
+    let (x, y) = CLOSE_BUTTON_POS;
+    positioned(close_style_button("Close", Message::ToggleInputDataMenu), x, y)
+}
+
+pub fn input_data_button<'a>() -> Option<Element<'a, Message>> {
+    let btn = button(text("View input data").font(RODIN_NTLG_PRO_EB).size(16).center())
+        .width(263)
+        .height(COMMON_BUTTON_HEIGHT)
+        .on_press(Message::ToggleInputDataMenu)
+        .style(styles::common_button_theme());
+
+    Some(positioned(btn, 508, 446))
+}
+
 pub fn ctgp_footer_identity_button(is_active: bool) -> Element<'static, Message> {
     let btn = footer_tab_button(
         "Identity",
@@ -1151,7 +1166,7 @@ pub fn external_footer_button<'a>(ghost: &'a Ghost) -> Option<Element<'a, Messag
         .on_press(Message::ToggleFooterInfoMenu)
         .style(styles::common_button_theme());
 
-    Some(positioned(btn, 508, 446))
+    Some(positioned(btn, 508, 491))
 }
 
 pub fn mii_image_element<'a>(handle: &'a image::Handle) -> Element<'a, Message> {
