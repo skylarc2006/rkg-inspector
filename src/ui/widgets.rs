@@ -6,9 +6,7 @@ use iced::{
     },
 };
 use rkg_utils::{
-    CTGPFooter, ControllerInput, FooterType, Ghost, Mii, SPFooter, Shroomstrat,
-    footer::ctgp_footer::Category,
-    header::{Controller, Date, InGameTime, combo::GetWeightClass},
+    CTGPFooter, ControllerInput, FooterType, Ghost, Mii, SPFooter, Shroomstrat, footer::ctgp_footer::Category, header::{Controller, Date, InGameTime, TransmissionMod, combo::GetWeightClass},
 };
 
 use std::{cmp::max, time::Duration};
@@ -925,7 +923,8 @@ pub fn character_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Ele
 }
 
 pub fn vehicle_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Element<'a, Message> {
-    let tooltip_text = text(format!(
+    use std::fmt::Write;
+    let mut t = format!(
         "{} ({})",
         ghost.header().combo().vehicle(),
         if ghost.header().is_automatic_drift() {
@@ -933,7 +932,13 @@ pub fn vehicle_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Eleme
         } else {
             "Manual"
         },
-    ))
+    );
+
+    if ghost.header().transmission_mod() != TransmissionMod::Vanilla {
+        write!(t, " ({})", ghost.header().transmission_mod()).unwrap();
+    }
+
+    let tooltip_text = text(t)
     .font(RODIN_NTLG_PRO_EB);
 
     let img_with_tooltip = tooltip(
