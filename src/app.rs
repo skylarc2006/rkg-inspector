@@ -1,5 +1,7 @@
+use std::time::Duration;
+
 use iced::widget::{image, svg};
-use iced::{Element, Length, Task, Theme, widget::stack};
+use iced::{Element, Length, Subscription, Task, Theme, widget::stack};
 use rkg_utils::Ghost;
 use rkg_utils::footer::FooterType;
 use rkg_utils::header::Combo;
@@ -16,6 +18,7 @@ use crate::message::{CtgpLink, Message};
 use crate::mii_rendering;
 use crate::ui::edit_data::{self, EditBuffers, VEHICLES, parse_date, parse_in_game_time};
 use crate::ui::footer_tab::FooterTab;
+use crate::ui::input_playback::{self, InputPlayback};
 use crate::ui::{assets, image_handles, widgets};
 
 /// A ghost and everything derived from it that the UI needs to render.
@@ -28,6 +31,10 @@ struct LoadedGhost {
     mii_handle: Option<image::Handle>,
     custom_track_name: Option<String>,
     edit_buffers: EditBuffers,
+    input_playback: InputPlayback,
+    /// Whether drift is actually active for each entry in
+    /// `ghost.input_data().controller_inputs()`, index-aligned to it.
+    effective_drift: Vec<bool>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -44,6 +51,7 @@ pub struct RkgInspector {
     background_handle: image::Handle,
     ghost_box_handle: image::Handle,
     info_background_handle: image::Handle,
+    input_box_handle: image::Handle,
     screen: Screen,
     active_footer_tab: FooterTab,
 }
@@ -56,6 +64,7 @@ impl RkgInspector {
             background_handle: image::Handle::from_bytes(assets::BACKGROUND),
             ghost_box_handle: image::Handle::from_bytes(assets::GHOST_BOX),
             info_background_handle: image::Handle::from_bytes(assets::INFO_BACKGROUND),
+            input_box_handle: image::Handle::from_bytes(assets::INPUT_BOX),
             screen: Screen::Main,
             active_footer_tab: FooterTab::CtgpIdentity,
         }
@@ -70,13 +79,26 @@ impl RkgInspector {
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        iced::event::listen_with(|event, _status, _id| {
+        let file_drop = iced::event::listen_with(|event, _status, _id| {
             if let iced::Event::Window(iced::window::Event::FileDropped(path)) = event {
                 Some(Message::GhostDropped(path))
             } else {
                 None
             }
-        })
+        });
+
+        let is_playing = self.screen == Screen::InputDataInfo
+            && self
+                .active()
+                .is_some_and(|loaded| loaded.input_playback.is_playing);
+
+        if is_playing {
+            let playback_tick =
+                iced::time::every(Duration::from_millis(16)).map(|_| Message::InputPlaybackTick);
+            Subscription::batch([file_drop, playback_tick])
+        } else {
+            file_drop
+        }
     }
 
     fn active(&self) -> Option<&LoadedGhost> {
@@ -137,6 +159,10 @@ impl RkgInspector {
         };
 
         let edit_buffers = EditBuffers::from_header(ghost.header());
+        let effective_drift =
+            input_playback::effective_drift_flags(ghost.input_data().controller_inputs());
+
+        self.pause_active_input_playback();
 
         self.ghosts.push(LoadedGhost {
             ghost,
@@ -146,6 +172,8 @@ impl RkgInspector {
             mii_handle: None,
             custom_track_name: None,
             edit_buffers,
+            input_playback: InputPlayback::new(),
+            effective_drift,
         });
 
         self.screen = Screen::Main;
@@ -153,6 +181,13 @@ impl RkgInspector {
         self.sync_active_footer_tab();
 
         Task::batch([mii_task, track_name_task])
+    }
+
+    
+    fn pause_active_input_playback(&mut self) {
+        if let Some(loaded) = self.ghosts.get_mut(self.active_index) {
+            loaded.input_playback.pause();
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -286,6 +321,7 @@ impl RkgInspector {
 
             Message::ToggleInputDataMenu => {
                 self.screen = if self.screen == Screen::InputDataInfo {
+                    self.pause_active_input_playback();
                     Screen::Main
                 } else {
                     Screen::InputDataInfo
@@ -477,6 +513,46 @@ impl RkgInspector {
                 }
                 Task::none()
             }),
+
+            Message::ToggleInputPlayback => self.with_loaded_mut(|loaded| {
+                let total_frames = loaded.ghost.input_data().total_frame_duration();
+                loaded.input_playback.toggle_play(total_frames);
+                Task::none()
+            }),
+
+            Message::InputPlaybackTick => self.with_loaded_mut(|loaded| {
+                let total_frames = loaded.ghost.input_data().total_frame_duration();
+                loaded.input_playback.tick(total_frames);
+                Task::none()
+            }),
+
+            Message::InputSeek(frame) => self.with_loaded_mut(|loaded| {
+                let total_frames = loaded.ghost.input_data().total_frame_duration();
+                loaded.input_playback.seek(frame, total_frames);
+                Task::none()
+            }),
+
+            Message::InputStepFrame(delta) => self.with_loaded_mut(|loaded| {
+                let total_frames = loaded.ghost.input_data().total_frame_duration();
+                loaded.input_playback.step(delta, total_frames);
+                Task::none()
+            }),
+
+            Message::InputJumpToStart => self.with_loaded_mut(|loaded| {
+                loaded.input_playback.jump_to_start();
+                Task::none()
+            }),
+
+            Message::InputJumpToEnd => self.with_loaded_mut(|loaded| {
+                let total_frames = loaded.ghost.input_data().total_frame_duration();
+                loaded.input_playback.jump_to_end(total_frames);
+                Task::none()
+            }),
+
+            Message::InputSpeedSelected(speed) => self.with_loaded_mut(|loaded| {
+                loaded.input_playback.set_speed(speed);
+                Task::none()
+            }),
         }
     }
 
@@ -648,6 +724,16 @@ impl RkgInspector {
         .height(Length::Fill);
 
         s = s.push(widgets::close_input_data_button());
+
+        if let Some(loaded) = self.active() {
+            s = s.push(widgets::input_viewer(
+                &loaded.ghost,
+                &loaded.input_playback,
+                &loaded.effective_drift,
+                self.input_box_handle.clone(),
+            ));
+        }
+
         s.into()
     }
 }

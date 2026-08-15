@@ -11,7 +11,7 @@ chrono = "0.4"
 
 [dependencies]
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
-iced = { version = "0.14.0", features = ["image", "svg", "advanced", "tokio"] }
+iced = { version = "0.14.0", features = ["image", "svg", "advanced", "tokio", "canvas"] }
 reqwest = { version = "0.13.2", features = ["json", "stream"] }
 rfd = "0.17.2"
 rkg-utils = "2.0.0"

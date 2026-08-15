@@ -146,3 +146,67 @@ pub fn info_box_style() -> impl Fn(&iced::Theme) -> container::Style {
         snap: true,
     }
 }
+
+/// Border width used by [`capsule_button_style`], exposed so
+/// [`black_backing_style`] can size its own border to reach under it.
+pub const FACE_BORDER_WIDTH: f32 = 4.5;
+
+pub fn capsule_button_style(active: bool, radius: f32) -> button::Style {
+    let (background_color, text_color) = if active {
+        (Color::WHITE, Color::BLACK)
+    } else {
+        (Color::TRANSPARENT, Color::WHITE)
+    };
+
+    button::Style {
+        background: Some(Background::Color(background_color)),
+        text_color,
+        border: Border {
+            color: Color::WHITE,
+            width: FACE_BORDER_WIDTH,
+            radius: Radius::new(radius),
+        },
+        shadow: Shadow::default(),
+        snap: true,
+    }
+}
+
+/// A transparent shape with a thick black border, drawn slightly larger
+/// than and behind a [`capsule_button_style`] shape. The border is wide
+/// enough to reach under that shape's own white border, so only a thin
+/// black ring peeks out around it rather than filling the whole shape.
+pub fn black_backing_style(radius: f32, pad: f32) -> button::Style {
+    button::Style {
+        background: Some(Background::Color(Color::TRANSPARENT)),
+        text_color: Color::TRANSPARENT,
+        border: Border {
+            color: Color::BLACK,
+            width: pad + FACE_BORDER_WIDTH,
+            radius: Radius::new(radius),
+        },
+        shadow: Shadow::default(),
+        snap: true,
+    }
+}
+
+/// A thin black ring drawn just inside a [`capsule_button_style`] shape's
+/// own white border (its transparent interior reveals whatever is
+/// underneath). Sits *above* that shape in the stack, so this inner edge
+/// stays visible even when the shape is filled solid white for its active
+/// state, rather than disappearing under the fill.
+pub fn inner_ring_style(radius: f32) -> button::Style {
+    button::Style {
+        background: Some(Background::Color(Color::TRANSPARENT)),
+        text_color: Color::TRANSPARENT,
+        border: Border {
+            color: Color::BLACK,
+            width: INNER_RING_WIDTH,
+            radius: Radius::new(radius),
+        },
+        shadow: Shadow::default(),
+        snap: true,
+    }
+}
+
+/// Thickness of [`inner_ring_style`]'s black ring.
+pub const INNER_RING_WIDTH: f32 = 3.0;

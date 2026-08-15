@@ -1,12 +1,12 @@
 use iced::{
     Alignment, Color, Element, Length, Rectangle,
     widget::{
-        Button, Image, Space, button, checkbox, column, container, image, pick_list, row,
-        scrollable, stack, svg, text, text_input, tooltip,
+        Button, Image, Space, button, canvas, checkbox, column, container, image, pick_list, row,
+        scrollable, slider, stack, svg, text, text_input, tooltip,
     },
 };
 use rkg_utils::{
-    CTGPFooter, FooterType, Ghost, Mii, SPFooter, Shroomstrat,
+    CTGPFooter, ControllerInput, FooterType, Ghost, Mii, SPFooter, Shroomstrat,
     footer::ctgp_footer::Category,
     header::{Controller, Date, InGameTime, combo::GetWeightClass},
 };
@@ -19,6 +19,7 @@ use crate::{
     ui::{
         assets::MUSHROOM,
         constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
+        controller_canvas::{DPadCanvas, StickCanvas},
         edit_data::{
             self, CHARACTERS, CONTROLLERS, EditBuffers, GHOST_TYPES, SLOT_IDS, TRANSMISSION_MODS,
             VEHICLES,
@@ -26,6 +27,7 @@ use crate::{
         fit_text::FitText,
         footer_tab::FooterTab,
         format::{disc_region_string, favorite_color_string},
+        input_playback::{self, InputPlayback, PLAYBACK_SPEEDS, PlaybackSpeed},
         layout::{CLOSE_BUTTON_POS, FOOTER_INFO_ORIGIN},
         positioned, styles,
     },
@@ -1325,4 +1327,413 @@ pub fn edit_form<'a>(ghost: &'a Ghost, buffers: &'a EditBuffers) -> Element<'a, 
     let scrollable_form = scrollable(fields).height(400).width(1000);
 
     positioned(scrollable_form, 170, 130)
+}
+
+/// Positions a widget so that its *center* (not top-left corner) lands at
+/// `(cx, cy)`, given its own `(width, height)`.
+fn positioned_centered<'a, M: 'a>(
+    widget: impl Into<Element<'a, M>>,
+    cx: f32,
+    cy: f32,
+    width: f32,
+    height: f32,
+) -> Element<'a, M> {
+    positioned(
+        widget,
+        (cx - width / 2.0).round() as u32,
+        (cy - height / 2.0).round() as u32,
+    )
+}
+
+/// A pill- or circle-shaped, non-interactive state indicator for one of the
+/// controller's face buttons, with no label.
+fn face_shape<'a>(active: bool, width: f32, radius: f32) -> Element<'a, Message> {
+    button(Space::new())
+        .width(width)
+        .height(radius * 2.0)
+        .style(move |_, _| styles::capsule_button_style(active, radius))
+        .into()
+}
+
+/// Pixels a black backing shape extends beyond the white shape it sits
+/// behind, so a thin black edge is visible all the way around.
+const FACE_OUTLINE_PAD: f32 = 3.0;
+
+/// Where and how big a controller face element (button-based shape or
+/// canvas) is: centered at `(cx, cy)`, `width`×`height` in size, with
+/// corner `radius` (`height / 2.0` for a capsule, `width / 2.0` for a
+/// circle).
+#[derive(Clone, Copy)]
+struct FaceGeometry {
+    cx: f32,
+    cy: f32,
+    width: f32,
+    height: f32,
+    radius: f32,
+}
+
+/// Wraps a face shape sized per `geometry` with a solid black backing a few
+/// pixels larger, plus a thin black ring just inside its own white border
+/// (drawn on top, so it stays visible even when the shape fills solid white
+/// for its active state), then centers the whole thing per `geometry`.
+fn outlined_at<'a>(inner: Element<'a, Message>, geometry: FaceGeometry) -> Element<'a, Message> {
+    let FaceGeometry {
+        cx,
+        cy,
+        width,
+        height,
+        radius,
+    } = geometry;
+
+    let outer_w = width + FACE_OUTLINE_PAD * 2.0;
+    let outer_h = height + FACE_OUTLINE_PAD * 2.0;
+
+    let backing = button(Space::new())
+        .width(outer_w)
+        .height(outer_h)
+        .style(move |_, _| styles::black_backing_style(radius + FACE_OUTLINE_PAD, FACE_OUTLINE_PAD));
+
+    let centered_face = container(inner).center(Length::Fill);
+
+    let ring_w = (width - styles::FACE_BORDER_WIDTH * 2.0).max(0.0);
+    let ring_h = (height - styles::FACE_BORDER_WIDTH * 2.0).max(0.0);
+    let ring_radius = (radius - styles::FACE_BORDER_WIDTH).max(0.0);
+    let inner_ring = button(Space::new())
+        .width(ring_w)
+        .height(ring_h)
+        .style(move |_, _| styles::inner_ring_style(ring_radius));
+    let centered_ring = container(inner_ring).center(Length::Fill);
+
+    positioned_centered(
+        stack!(backing, centered_face, centered_ring),
+        cx,
+        cy,
+        outer_w,
+        outer_h,
+    )
+}
+
+/// Same as [`outlined_at`], but for a face element with a text label: the
+/// label is rendered as its own topmost layer, sized to fit strictly inside
+/// the inner ring's own hole (`ring_w`/`ring_h` from `outlined_at`, minus
+/// the ring's own thickness) and centered on the same point as everything
+/// else — so it can't visually collide with that ring no matter how the two
+/// are laid out.
+fn outlined_button_at<'a>(
+    label: &'static str,
+    active: bool,
+    text_size: f32,
+    geometry: FaceGeometry,
+) -> Element<'a, Message> {
+    let FaceGeometry {
+        cx,
+        cy,
+        width,
+        height,
+        radius,
+    } = geometry;
+
+    let shape = outlined_at(face_shape(active, width, radius), geometry);
+
+    let ring_w = (width - styles::FACE_BORDER_WIDTH * 2.0).max(0.0);
+    let ring_h = (height - styles::FACE_BORDER_WIDTH * 2.0).max(0.0);
+    let text_w = (ring_w - styles::INNER_RING_WIDTH * 2.0).max(0.0);
+    let text_h = (ring_h - styles::INNER_RING_WIDTH * 2.0).max(0.0);
+
+    let text_color = if active { Color::BLACK } else { Color::WHITE };
+    let label_el = text(label)
+        .font(RODIN_NTLG_PRO_EB)
+        .size(text_size)
+        .color(text_color)
+        .width(text_w)
+        .height(text_h)
+        .center();
+
+    let label_positioned = positioned_centered(label_el, cx, cy, text_w, text_h);
+
+    stack!(shape, label_positioned)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
+}
+
+fn input_box_background<'a>(handle: image::Handle) -> Element<'a, Message> {
+    let img = image(handle).width(BOX_W).height(BOX_H);
+    positioned(img, BOX_X as u32, BOX_Y as u32)
+}
+
+const BOX_X: f32 = 145.0;
+const BOX_Y: f32 = 200.0;
+const BOX_W: f32 = 545.0;
+const BOX_H: f32 = 350.0;
+
+
+fn controller_face<'a>(current: ControllerInput, is_drifting: bool) -> Element<'a, Message> {
+    const DPAD_SIZE: f32 = 100.0;
+    const STICK_SIZE: f32 = 170.0;
+    const ACCEL_SIZE: f32 = 90.0;
+    const SHOULDER_W: f32 = 130.0;
+    const SHOULDER_H: f32 = 34.0;
+    const SECONDARY_W: f32 = 90.0;
+    const SECONDARY_H: f32 = 34.0;
+    const GAP: f32 = 18.0;
+
+    const COL1: f32 = 267.0;
+    const COL2: f32 = COL1 + DPAD_SIZE / 2.0 + GAP + STICK_SIZE / 2.0;
+    const COL3: f32 = COL2 + STICK_SIZE / 2.0 + GAP + ACCEL_SIZE / 2.0;
+    const SHOULDER_ROW: f32 = 255.0;
+    const MAIN_ROW: f32 = SHOULDER_ROW + SHOULDER_H / 2.0 + GAP + STICK_SIZE / 2.0;
+    const SECONDARY_ROW: f32 = MAIN_ROW + STICK_SIZE / 2.0 + GAP + SECONDARY_H / 2.0;
+
+    let item_shoulder = outlined_at(
+        face_shape(current.item(), SHOULDER_W, SHOULDER_H / 2.0),
+        FaceGeometry {
+            cx: COL1,
+            cy: SHOULDER_ROW,
+            width: SHOULDER_W,
+            height: SHOULDER_H,
+            radius: SHOULDER_H / 2.0,
+        },
+    );
+    let brake_shoulder = outlined_at(
+        face_shape(current.brake(), SHOULDER_W, SHOULDER_H / 2.0),
+        FaceGeometry {
+            cx: COL3,
+            cy: SHOULDER_ROW,
+            width: SHOULDER_W,
+            height: SHOULDER_H,
+            radius: SHOULDER_H / 2.0,
+        },
+    );
+
+    let dpad = positioned_centered(
+        canvas(DPadCanvas {
+            dpad: current.dpad(),
+        })
+        .width(DPAD_SIZE)
+        .height(DPAD_SIZE),
+        COL1,
+        MAIN_ROW,
+        DPAD_SIZE,
+        DPAD_SIZE,
+    );
+    let stick = positioned_centered(
+        canvas(StickCanvas {
+            stick: current.stick(),
+        })
+        .width(STICK_SIZE)
+        .height(STICK_SIZE),
+        COL2,
+        MAIN_ROW,
+        STICK_SIZE,
+        STICK_SIZE,
+    );
+    let accelerator = outlined_at(
+        face_shape(current.accelerator(), ACCEL_SIZE, ACCEL_SIZE / 2.0),
+        FaceGeometry {
+            cx: COL3,
+            cy: MAIN_ROW,
+            width: ACCEL_SIZE,
+            height: ACCEL_SIZE,
+            radius: ACCEL_SIZE / 2.0,
+        },
+    );
+
+    let drift = outlined_button_at(
+        "Drift",
+        is_drifting,
+        11.0,
+        FaceGeometry {
+            cx: COL1,
+            cy: SECONDARY_ROW,
+            width: SECONDARY_W,
+            height: SECONDARY_H,
+            radius: SECONDARY_H / 2.0,
+        },
+    );
+    let brake_drift = outlined_button_at(
+        "B.Drift",
+        current.brake_drift(),
+        11.0,
+        FaceGeometry {
+            cx: COL2,
+            cy: SECONDARY_ROW,
+            width: SECONDARY_W,
+            height: SECONDARY_H,
+            radius: SECONDARY_H / 2.0,
+        },
+    );
+    let pause = outlined_button_at(
+        "Pause",
+        current.pause(),
+        11.0,
+        FaceGeometry {
+            cx: COL3,
+            cy: SECONDARY_ROW,
+            width: SECONDARY_W,
+            height: SECONDARY_H,
+            radius: SECONDARY_H / 2.0,
+        },
+    );
+
+    stack!(
+        brake_shoulder,
+        item_shoulder,
+        dpad,
+        stick,
+        accelerator,
+        drift,
+        brake_drift,
+        pause,
+    )
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .into()
+}
+
+fn format_race_time(total_seconds: f64) -> String {
+    let sign = if total_seconds < 0.0 { "-" } else { "" };
+    let total_millis = (total_seconds.abs() * 1000.0).round() as u64;
+    let minutes = total_millis / 60_000;
+    let seconds = (total_millis % 60_000) / 1_000;
+    let millis = total_millis % 1_000;
+    format!("{sign}{:02}:{:02}.{:03}", minutes, seconds, millis)
+}
+
+fn frame_info_box<'a>(
+    current_input: ControllerInput,
+    current_frame: u32,
+    total_frames: u32,
+) -> Element<'a, Message> {
+    use std::fmt::Write;
+
+    let mut s = String::new();
+    write!(s, "Frame: {} / {}", current_frame, total_frames).unwrap();
+
+    let time_secs = (current_frame as f64 - input_playback::RACE_START_FRAME as f64)
+        / input_playback::FRAME_RATE;
+    write!(s, "\nTime: {}", format_race_time(time_secs)).unwrap();
+
+    write!(
+        s,
+        "\nStick: ({}, {})",
+        current_input.stick().x(),
+        current_input.stick().y()
+    )
+    .unwrap();
+
+    write!(s, "\nHeld for: {} frames", current_input.frame_duration()).unwrap();
+
+    let text_el = text(s)
+        .font(RODIN_NTLG_PRO_EB)
+        .color(Color::WHITE)
+        .size(18)
+        .width(300)
+        .height(94);
+
+    let box_el = container(text_el).padding(10).style(styles::info_box_style());
+
+    positioned(box_el, 710, 200)
+}
+
+fn seek_slider<'a>(current_frame: u32, total_frames: u32) -> Element<'a, Message> {
+    // Stop well short of the close button (`CLOSE_BUTTON_POS.0`) so the
+    // slider's full-width rail and thumb never render underneath it.
+    let width = CLOSE_BUTTON_POS.0 as f32 - 170.0 - 30.0;
+    let s = slider(1..=total_frames.max(1), current_frame, Message::InputSeek).width(width);
+    positioned(s, 170, 562)
+}
+
+fn transport_button<'a>(label: &'static str, msg: Message, enabled: bool) -> Element<'a, Message> {
+    let btn = button(text(label).font(RODIN_NTLG_PRO_EB).size(16).center())
+        .width(50)
+        .height(36);
+
+    if enabled {
+        btn.on_press(msg).style(styles::common_button_theme()).into()
+    } else {
+        btn.style(|_, _| styles::disabled_button_style()).into()
+    }
+}
+
+fn transport_controls<'a>(
+    is_playing: bool,
+    current_frame: u32,
+    total_frames: u32,
+) -> Element<'a, Message> {
+    let jump_start = transport_button("|<", Message::InputJumpToStart, current_frame > 1);
+    let step_back = transport_button("<", Message::InputStepFrame(-1), current_frame > 1);
+
+    let play_pause = button(
+        text(if is_playing { "Pause" } else { "Play" })
+            .font(RODIN_NTLG_PRO_EB)
+            .size(16)
+            .center(),
+    )
+    .width(90)
+    .height(36)
+    .on_press(Message::ToggleInputPlayback)
+    .style(styles::common_button_theme());
+
+    let step_fwd = transport_button(">", Message::InputStepFrame(1), current_frame < total_frames);
+    let jump_end = transport_button(">|", Message::InputJumpToEnd, current_frame < total_frames);
+
+    let controls = row![jump_start, step_back, play_pause, step_fwd, jump_end].spacing(8);
+    positioned(controls, 170, 599)
+}
+
+fn speed_picker<'a>(speed: PlaybackSpeed) -> Element<'a, Message> {
+    let label = text("Speed")
+        .font(RODIN_NTLG_PRO_EB)
+        .size(16)
+        .color(styles::grey_text());
+    let picker = pick_list(PLAYBACK_SPEEDS, Some(speed), Message::InputSpeedSelected)
+        .width(90)
+        .text_size(16);
+
+    let row_el = row![label, picker].spacing(8).align_y(Alignment::Center);
+    positioned(row_el, 540, 605)
+}
+
+pub fn input_viewer<'a>(
+    ghost: &'a Ghost,
+    playback: &'a InputPlayback,
+    effective_drift: &'a [bool],
+    input_box_handle: image::Handle,
+) -> Element<'a, Message> {
+    let input_data = ghost.input_data();
+    let total_frames = input_data.total_frame_duration();
+    let current_frame = playback.current_frame;
+
+    let idx = input_data.input_index_at_frame(current_frame);
+    let current_input = idx
+        .and_then(|i| input_data.controller_inputs().get(i))
+        .copied()
+        .unwrap_or_default();
+    let is_drifting = idx
+        .and_then(|i| effective_drift.get(i))
+        .copied()
+        .unwrap_or(false);
+
+    let title = positioned(
+        text("Input Data")
+            .font(RODIN_NTLG_PRO_EB)
+            .size(26)
+            .color(styles::grey_text()),
+        170,
+        140,
+    );
+
+    stack!(
+        title,
+        input_box_background(input_box_handle),
+        controller_face(current_input, is_drifting),
+        frame_info_box(current_input, current_frame, total_frames),
+        seek_slider(current_frame, total_frames),
+        transport_controls(playback.is_playing, current_frame, total_frames),
+        speed_picker(playback.speed),
+    )
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .into()
 }

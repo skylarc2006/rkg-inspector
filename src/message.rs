@@ -8,6 +8,7 @@ use rkg_utils::header::{
 };
 
 use crate::ui::footer_tab::FooterTab;
+use crate::ui::input_playback::PlaybackSpeed;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CtgpLink {
@@ -50,4 +51,11 @@ pub enum Message {
     EditAutomaticDriftToggled(bool),
     EditCountrySelected(Country),
     EditSubregionSelected(Subregion),
+    ToggleInputPlayback,
+    InputPlaybackTick,
+    InputSeek(u32),
+    InputStepFrame(i32),
+    InputJumpToStart,
+    InputJumpToEnd,
+    InputSpeedSelected(PlaybackSpeed),
 }

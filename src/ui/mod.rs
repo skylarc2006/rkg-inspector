@@ -5,11 +5,13 @@ use iced::{
 
 pub mod assets;
 pub mod constants;
+pub mod controller_canvas;
 pub mod edit_data;
 pub mod fit_text;
 pub mod footer_tab;
 pub mod format;
 pub mod image_handles;
+pub mod input_playback;
 pub mod layout;
 pub mod styles;
 pub mod widgets;
