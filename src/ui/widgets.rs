@@ -1622,8 +1622,8 @@ fn frame_info_box<'a>(
     write!(
         s,
         "\nStick: ({}, {})",
-        current_input.stick().x(),
-        current_input.stick().y()
+        current_input.stick().x() as i8 - 7,
+        current_input.stick().y() as i8 - 7
     )
     .unwrap();
 
