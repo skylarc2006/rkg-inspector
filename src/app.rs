@@ -570,7 +570,6 @@ impl RkgInspector {
             self.background_handle.clone(),
             self.ghost_box_handle.clone(),
         );
-        let prerelease_warning_text = widgets::prerelease_warning_text();
         let rkg_inspector_text = widgets::rkg_inspector_text();
         let select_ghost_button = widgets::select_ghost_button();
         let has_multiple_ghosts = self.ghosts.len() > 1;
@@ -582,7 +581,6 @@ impl RkgInspector {
 
         let mut s = stack!(
             background,
-            prerelease_warning_text,
             rkg_inspector_text,
             select_ghost_button,
             previous_ghost_button,
@@ -641,7 +639,6 @@ impl RkgInspector {
 
         let mut s = stack!(
             background,
-            widgets::prerelease_warning_text(),
             widgets::rkg_inspector_text(),
             info_background,
         )
@@ -665,7 +662,6 @@ impl RkgInspector {
 
         let mut s = stack!(
             background,
-            widgets::prerelease_warning_text(),
             widgets::rkg_inspector_text(),
             info_background,
         )
@@ -716,7 +712,6 @@ impl RkgInspector {
 
         let mut s = stack!(
             background,
-            widgets::prerelease_warning_text(),
             widgets::rkg_inspector_text(),
             info_background,
         )

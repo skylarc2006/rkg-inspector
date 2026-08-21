@@ -120,17 +120,6 @@ pub fn info_background(info_background_handle: image::Handle) -> Element<'static
     image(info_background_handle).scale(0.85f32).into()
 }
 
-pub fn prerelease_warning_text() -> Element<'static, Message> {
-    let t = text("WARNING: this is an unfinished pre-release version for testing! ")
-        .color(Color::from_rgba8(128, 128, 128, 1.0))
-        .align_x(Alignment::End)
-        .align_y(Alignment::Start)
-        .width(Length::Fill)
-        .font(RODIN_NTLG_PRO_EB)
-        .size(14);
-    positioned(t, 0, 5)
-}
-
 pub fn rkg_inspector_text() -> Element<'static, Message> {
     let t = text(format!("RKG Inspector {}", VERSION))
         .color(Color::from_rgba8(128, 128, 128, 1.0))

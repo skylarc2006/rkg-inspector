@@ -12,4 +12,4 @@ pub const CTMKF: Font = Font {
     ..Font::DEFAULT
 };
 
-pub const VERSION: &str = "pre-release 8"; // "v0.1" upon official release
+pub const VERSION: &str = "v1.0.0";
