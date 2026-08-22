@@ -1004,10 +1004,18 @@ pub fn lap_splits_box<'a>(lap_splits: &[InGameTime]) -> Element<'a, Message> {
 pub fn mii_info_box<'a>(mii: &'a Mii) -> Element<'a, Message> {
     let font_size = if cfg!(target_os = "macos") {
         10.5
+    } else if cfg!(target_os = "linux") {
+        12.25
     } else {
         14.0
     };
-    let element_y_pos = if cfg!(target_os = "macos") { 430 } else { 391 };
+    let element_y_pos = if cfg!(target_os = "macos") {
+        430
+    } else if cfg!(target_os = "linux") {
+        411
+    } else {
+        391
+    };
 
     let label_col = column![
         mii_label("Mii Info", font_size * 1.5),
