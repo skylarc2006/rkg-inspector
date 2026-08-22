@@ -848,7 +848,22 @@ pub fn track_name_text<'a>(
         height: 39.0,
     };
 
-    positioned(iced::Element::new(t), 365, 154)
+    let tooltip_text = text(format!(
+        "Slot: {}",
+        ghost.header().slot_id()
+    ))
+    .font(RODIN_NTLG_PRO_EB);
+
+    let tooltip = tooltip(
+        iced::Element::new(t),
+        container(tooltip_text)
+            .padding(4)
+            .style(styles::tooltip_style()),
+        tooltip::Position::FollowCursor,
+    )
+    .delay(Duration::from_millis(500));
+
+    positioned(tooltip, 365, 154)
 }
 
 pub fn finish_time_text(finish_time: InGameTime) -> Element<'static, Message> {
