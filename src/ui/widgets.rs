@@ -1653,6 +1653,33 @@ fn frame_info_box<'a>(
     positioned(box_el, 710, 200)
 }
 
+fn compression_stat_box<'a>(compressed: bool) -> Element<'a, Message> {
+    let label = if compressed { "Compressed" } else { "Not compressed" };
+
+    let text_el = text(format!("Compression:\n{}", label))
+        .font(RODIN_NTLG_PRO_EB)
+        .color(Color::WHITE)
+        .size(18)
+        .width(180)
+        .height(50);
+
+    let box_el = container(text_el).padding(10).style(styles::info_box_style());
+
+    positioned(box_el, 710, 334)
+}
+
+fn compression_toggle_button<'a>(compressed: bool) -> Element<'a, Message> {
+    let label = if compressed { "Decompress" } else { "Compress" };
+
+    let btn = button(text(label).font(RODIN_NTLG_PRO_EB).size(16).center())
+        .width(200)
+        .height(COMMON_BUTTON_HEIGHT)
+        .on_press(Message::ToggleInputDataCompression)
+        .style(styles::common_button_theme());
+
+    positioned(btn, 710, 414)
+}
+
 fn seek_slider<'a>(current_frame: u32, total_frames: u32) -> Element<'a, Message> {
     // Stop well short of the close button (`CLOSE_BUTTON_POS.0`) so the
     // slider's full-width rail and thumb never render underneath it.
@@ -1746,6 +1773,8 @@ pub fn input_viewer<'a>(
         input_box_background(input_box_handle),
         controller_face(current_input, is_drifting),
         frame_info_box(current_input, current_frame, total_frames),
+        compression_stat_box(input_data.compressed()),
+        compression_toggle_button(input_data.compressed()),
         seek_slider(current_frame, total_frames),
         transport_controls(playback.is_playing, current_frame, total_frames),
         speed_picker(playback.speed),

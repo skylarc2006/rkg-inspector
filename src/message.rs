@@ -58,4 +58,5 @@ pub enum Message {
     InputJumpToStart,
     InputJumpToEnd,
     InputSpeedSelected(PlaybackSpeed),
+    ToggleInputDataCompression,
 }

@@ -553,6 +553,12 @@ impl RkgInspector {
                 loaded.input_playback.set_speed(speed);
                 Task::none()
             }),
+
+            Message::ToggleInputDataCompression => self.with_loaded_mut(|loaded| {
+                let compressed = !loaded.ghost.input_data().compressed();
+                loaded.ghost.set_input_data_compressed(compressed);
+                Task::none()
+            }),
         }
     }
 
