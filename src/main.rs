@@ -32,14 +32,18 @@ pub fn main() -> iced::Result {
     )
     .title(RkgInspector::title)
     .theme(RkgInspector::theme)
+    .scale_factor(RkgInspector::scale_factor)
     .window(window::Settings {
         icon: Some(
             window::icon::from_file_data(include_bytes!("../images/icon.ico"), None).unwrap(),
         ),
+        // Half the 1280x720 design resolution, small enough to
+        // be out of the way, large enough that no widget/text overlaps.
+        min_size: Some(Size::new(640.0, 360.0)),
         ..Default::default()
     })
     .window_size(Size::new(1280.0, 720.0))
-    .resizable(false)
+    .resizable(true)
     .subscription(RkgInspector::subscription)
     .font(include_bytes!("../fonts/FOT-RodinNTLG Pro EB.otf").as_slice())
     .font(include_bytes!("../fonts/ctmkf.ttf").as_slice())

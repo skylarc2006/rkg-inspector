@@ -1,5 +1,14 @@
 use std::path::PathBuf;
 
+fn sanitize_filename(name: &str) -> String {
+    name.chars()
+        .map(|c| match c {
+            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => ' ',
+            _ => c,
+        })
+        .collect()
+}
+
 pub async fn pick_file(filter_name: &str, extensions: &[&str]) -> Option<PathBuf> {
     rfd::AsyncFileDialog::new()
         .add_filter(filter_name, extensions)
@@ -24,6 +33,7 @@ pub async fn save_as_file(
     filter_name: &str,
     extensions: &[&str],
 ) -> Option<PathBuf> {
+    let default_file_name = sanitize_filename(&default_file_name);
     rfd::AsyncFileDialog::new()
         .set_file_name(default_file_name)
         .add_filter(filter_name, extensions)

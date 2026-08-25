@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use iced::widget::image;
+use iced::{Size, window};
 use rkg_utils::header::{
     Controller, GhostType, SlotId, TransmissionMod,
     combo::{Character, Vehicle},
@@ -72,4 +73,6 @@ pub enum Message {
     CheckForUpdates,
     UpdateCheckCompleted(Option<Version>),
     OpenReleasesPage,
+    WindowResized(window::Id, Size),
+    WindowResizeSettled(window::Id, u64),
 }

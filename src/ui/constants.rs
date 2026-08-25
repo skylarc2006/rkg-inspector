@@ -21,9 +21,14 @@ pub struct Version {
 
 pub const VERSION: Version = Version {
     major: 1,
-    minor: 0,
+    minor: 1,
     patch: 0,
 };
+
+
+pub const DESIGN_WIDTH: f32 = 1280.0;
+pub const DESIGN_HEIGHT: f32 = 720.0;
+pub const ASPECT_RATIO: f32 = DESIGN_WIDTH / DESIGN_HEIGHT;
 
 impl std::fmt::Display for Version {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

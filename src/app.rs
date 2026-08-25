@@ -17,7 +17,7 @@ use crate::helpers::track_abbreviation;
 use crate::link_type::LinkType;
 use crate::message::{CtgpLink, Message, UpdateStatus};
 use crate::mii_rendering;
-use crate::ui::constants::VERSION;
+use crate::ui::constants::{ASPECT_RATIO, DESIGN_HEIGHT, DESIGN_WIDTH, VERSION};
 use crate::ui::edit_data::{self, EditBuffers, VEHICLES, parse_date, parse_in_game_time};
 use crate::ui::footer_tab::FooterTab;
 use crate::ui::input_playback::{self, InputPlayback};
@@ -58,6 +58,8 @@ pub struct RkgInspector {
     screen: Screen,
     active_footer_tab: FooterTab,
     update_status: UpdateStatus,
+    ui_scale: f32,
+    resize_generation: u64,
 }
 
 impl RkgInspector {
@@ -72,6 +74,8 @@ impl RkgInspector {
             screen: Screen::Main,
             active_footer_tab: FooterTab::CtgpIdentity,
             update_status: UpdateStatus::Idle,
+            ui_scale: 1.0,
+            resize_generation: 0,
         }
     }
 
@@ -83,6 +87,16 @@ impl RkgInspector {
         Theme::Dark
     }
 
+    /// Uniform scale factor applied to the whole window's contents. The
+    /// window is opened at `DESIGN_HEIGHT` (logical) and kept there via
+    /// [`Message::WindowResized`]'s aspect-ratio correction, so this value
+    /// only ever changes in response to the user actually resizing the
+    /// window, at which point it's updated to keep the *logical* height
+    /// (post-scale) pinned to `DESIGN_HEIGHT` — see the handler below.
+    pub fn scale_factor(&self) -> f32 {
+        self.ui_scale
+    }
+
     pub fn subscription(&self) -> iced::Subscription<Message> {
         let file_drop = iced::event::listen_with(|event, _status, _id| {
             if let iced::Event::Window(iced::window::Event::FileDropped(path)) = event {
@@ -92,6 +106,9 @@ impl RkgInspector {
             }
         });
 
+        let window_resize = iced::window::resize_events()
+            .map(|(id, size)| Message::WindowResized(id, size));
+
         let is_playing = self.screen == Screen::InputDataInfo
             && self
                 .active()
@@ -100,9 +117,9 @@ impl RkgInspector {
         if is_playing {
             let playback_tick =
                 iced::time::every(Duration::from_millis(16)).map(|_| Message::InputPlaybackTick);
-            Subscription::batch([file_drop, playback_tick])
+            Subscription::batch([file_drop, window_resize, playback_tick])
         } else {
-            file_drop
+            Subscription::batch([file_drop, window_resize])
         }
     }
 
@@ -588,6 +605,58 @@ impl RkgInspector {
                     // TODO: error handle
                 }
                 Task::none()
+            }
+
+            Message::WindowResized(id, size) => {
+                // `size` is logical, measured in the *current* (pre-update)
+                // scale's units, so `size.height / DESIGN_HEIGHT` is exactly
+                // the factor needed to bring the logical height back to
+                // DESIGN_HEIGHT: scaling by it keeps `ui_scale *
+                // logical_height` invariant across resizes, pinning layout
+                // to the DESIGN_HEIGHT reference regardless of the window's
+                // actual pixel size. Applied unconditionally and
+                // immediately (unlike the aspect-ratio snap below) so
+                // content keeps scaling smoothly as the user drags.
+                self.ui_scale *= size.height / DESIGN_HEIGHT;
+
+                // `size`'s width/height ratio is scale-independent (both
+                // dimensions share one factor), so it doubles as the
+                // window's physical aspect ratio. If it's not already
+                // 16:9, schedule a correction - but debounced: bump
+                // `resize_generation` and only actually snap once no
+                // further resize has arrived for 150ms. Snapping on every
+                // intermediate event during a live drag is what made
+                // resizing feel "bouncy" (each snap fought the OS's own
+                // in-progress resize); letting the shape drift during the
+                // drag and correcting once it pauses reads as a clean,
+                // deliberate snap instead.
+                let is_16_9 = (size.width / size.height - ASPECT_RATIO).abs() < 0.001;
+                if is_16_9 {
+                    Task::none()
+                } else {
+                    self.resize_generation = self.resize_generation.wrapping_add(1);
+                    let generation = self.resize_generation;
+                    Task::perform(tokio::time::sleep(Duration::from_millis(150)), move |()| {
+                        Message::WindowResizeSettled(id, generation)
+                    })
+                }
+            }
+
+            Message::WindowResizeSettled(id, generation) => {
+                if generation == self.resize_generation {
+                    // `window::resize` targets are logical in the window's
+                    // current scale_factor, which by now reflects every
+                    // `ui_scale` update from the drag - and under that
+                    // scale, the settled resize's own logical height is
+                    // always exactly DESIGN_HEIGHT by construction (see
+                    // `WindowResized` above), so the corrected target is
+                    // simply the constant design size.
+                    iced::window::resize(id, iced::Size::new(DESIGN_WIDTH, DESIGN_HEIGHT))
+                } else {
+                    // A newer resize has arrived since this was scheduled;
+                    // its own settle check will decide whether to correct.
+                    Task::none()
+                }
             }
         }
     }
