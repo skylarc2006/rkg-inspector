@@ -10,6 +10,7 @@ use rkg_utils::header::mii::Mii;
 
 use crate::chadsoft::{
     chadsoft_ghost_link, chadsoft_leaderboard_link, chadsoft_player_link, fetch_ctgp_track_name,
+    is_base_track_sha1,
 };
 use crate::files::{pick_file, pick_files, save_as_file};
 use crate::helpers::track_abbreviation;
@@ -154,10 +155,14 @@ impl RkgInspector {
             let slot_id = ghost.header().slot_id();
             let track_sha1 = ctgp_footer.track_sha1().to_vec();
             let category = ctgp_footer.category();
-            Task::perform(
-                fetch_ctgp_track_name(slot_id, track_sha1, category),
-                move |name| Message::CtgpTrackNameLoaded(index, name),
-            )
+            if is_base_track_sha1(&track_sha1) {
+                Task::done(Message::CtgpTrackNameLoaded(index, Some(slot_id.to_string())))
+            } else {
+                Task::perform(
+                    fetch_ctgp_track_name(slot_id, track_sha1, category),
+                    move |name| Message::CtgpTrackNameLoaded(index, name),
+                )
+            }
         } else {
             Task::none()
         };
