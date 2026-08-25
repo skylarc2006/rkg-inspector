@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::time::Duration;
 
 use iced::widget::{image, svg};
@@ -59,6 +60,7 @@ pub struct RkgInspector {
     active_footer_tab: FooterTab,
     update_status: UpdateStatus,
     ui_scale: f32,
+    synced_ui_scale: Cell<f32>,
     resize_generation: u64,
 }
 
@@ -75,6 +77,7 @@ impl RkgInspector {
             active_footer_tab: FooterTab::CtgpIdentity,
             update_status: UpdateStatus::Idle,
             ui_scale: 1.0,
+            synced_ui_scale: Cell::new(1.0),
             resize_generation: 0,
         }
     }
@@ -94,6 +97,11 @@ impl RkgInspector {
     /// window, at which point it's updated to keep the *logical* height
     /// (post-scale) pinned to `DESIGN_HEIGHT` — see the handler below.
     pub fn scale_factor(&self) -> f32 {
+        // iced calls this once per synced frame, right after a batch of
+        // messages (including any `WindowResized`) has been applied - so
+        // this is exactly the point where it's safe to snapshot `ui_scale`
+        // as the new baseline for the next batch. See `synced_ui_scale`.
+        self.synced_ui_scale.set(self.ui_scale);
         self.ui_scale
     }
 
@@ -608,28 +616,16 @@ impl RkgInspector {
             }
 
             Message::WindowResized(id, size) => {
-                // `size` is logical, measured in the *current* (pre-update)
-                // scale's units, so `size.height / DESIGN_HEIGHT` is exactly
-                // the factor needed to bring the logical height back to
-                // DESIGN_HEIGHT: scaling by it keeps `ui_scale *
-                // logical_height` invariant across resizes, pinning layout
-                // to the DESIGN_HEIGHT reference regardless of the window's
-                // actual pixel size. Applied unconditionally and
-                // immediately (unlike the aspect-ratio snap below) so
-                // content keeps scaling smoothly as the user drags.
-                self.ui_scale *= size.height / DESIGN_HEIGHT;
+                if !size.width.is_finite()
+                    || !size.height.is_finite()
+                    || size.width <= 0.0
+                    || size.height <= 0.0
+                {
+                    return Task::none();
+                }
 
-                // `size`'s width/height ratio is scale-independent (both
-                // dimensions share one factor), so it doubles as the
-                // window's physical aspect ratio. If it's not already
-                // 16:9, schedule a correction - but debounced: bump
-                // `resize_generation` and only actually snap once no
-                // further resize has arrived for 150ms. Snapping on every
-                // intermediate event during a live drag is what made
-                // resizing feel "bouncy" (each snap fought the OS's own
-                // in-progress resize); letting the shape drift during the
-                // drag and correcting once it pauses reads as a clean,
-                // deliberate snap instead.
+                self.ui_scale = self.synced_ui_scale.get() * (size.height / DESIGN_HEIGHT);
+
                 let is_16_9 = (size.width / size.height - ASPECT_RATIO).abs() < 0.001;
                 if is_16_9 {
                     Task::none()
@@ -644,17 +640,8 @@ impl RkgInspector {
 
             Message::WindowResizeSettled(id, generation) => {
                 if generation == self.resize_generation {
-                    // `window::resize` targets are logical in the window's
-                    // current scale_factor, which by now reflects every
-                    // `ui_scale` update from the drag - and under that
-                    // scale, the settled resize's own logical height is
-                    // always exactly DESIGN_HEIGHT by construction (see
-                    // `WindowResized` above), so the corrected target is
-                    // simply the constant design size.
                     iced::window::resize(id, iced::Size::new(DESIGN_WIDTH, DESIGN_HEIGHT))
                 } else {
-                    // A newer resize has arrived since this was scheduled;
-                    // its own settle check will decide whether to correct.
                     Task::none()
                 }
             }
