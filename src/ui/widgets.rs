@@ -13,7 +13,7 @@ use std::{cmp::max, time::Duration};
 
 use crate::{
     helpers::array_to_hex_string,
-    message::{CtgpLink, Message},
+    message::{CtgpLink, Message, UpdateStatus},
     ui::{
         assets::MUSHROOM,
         constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
@@ -143,6 +143,39 @@ pub fn select_ghost_button() -> Element<'static, Message> {
     .on_press(Message::LoadGhost)
     .style(styles::common_button_theme());
     positioned(btn, 507, 80)
+}
+
+pub fn update_check_button(status: UpdateStatus) -> Element<'static, Message> {
+    let (label, msg, urgent) = match status {
+        UpdateStatus::Idle => ("Check for Updates".to_string(), Some(Message::CheckForUpdates), None),
+        UpdateStatus::Checking => ("Checking...".to_string(), None, None),
+        UpdateStatus::UpToDate => ("Up to date".to_string(), Some(Message::CheckForUpdates), None),
+        UpdateStatus::Available(version) => (
+            format!("Update available: {version}"),
+            Some(Message::OpenReleasesPage),
+            Some(true),
+        ),
+        UpdateStatus::CheckFailed => (
+            "Check failed - Retry".to_string(),
+            Some(Message::CheckForUpdates),
+            Some(false),
+        ),
+    };
+
+    let btn = button(text(label).font(RODIN_NTLG_PRO_EB).size(14).center())
+        .width(240)
+        .height(COMMON_BUTTON_HEIGHT);
+
+    let btn = match (msg, urgent) {
+        (None, _) => btn.style(|_, _| styles::disabled_button_style()),
+        (Some(msg), Some(is_good)) => btn.on_press(msg).style(move |_, status| match status {
+            button::Status::Hovered => styles::hovered_red_green_button_style(is_good),
+            _ => styles::red_green_button_style(is_good),
+        }),
+        (Some(msg), None) => btn.on_press(msg).style(styles::common_button_theme()),
+    };
+
+    positioned(btn, 20, 620)
 }
 
 pub fn previous_ghost_button(enabled: bool) -> Element<'static, Message> {

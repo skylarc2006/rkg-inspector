@@ -7,6 +7,7 @@ use rkg_utils::header::{
     location::constants::{Country, Subregion},
 };
 
+use crate::ui::constants::Version;
 use crate::ui::footer_tab::FooterTab;
 use crate::ui::input_playback::PlaybackSpeed;
 
@@ -15,6 +16,15 @@ pub enum CtgpLink {
     Leaderboard,
     Ghost,
     Player,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum UpdateStatus {
+    Idle,
+    Checking,
+    UpToDate,
+    Available(Version),
+    CheckFailed,
 }
 
 #[derive(Debug, Clone)]
@@ -59,4 +69,7 @@ pub enum Message {
     InputJumpToEnd,
     InputSpeedSelected(PlaybackSpeed),
     ToggleInputDataCompression,
+    CheckForUpdates,
+    UpdateCheckCompleted(Option<Version>),
+    OpenReleasesPage,
 }

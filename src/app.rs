@@ -14,12 +14,14 @@ use crate::chadsoft::{
 use crate::files::{pick_file, pick_files, save_as_file};
 use crate::helpers::track_abbreviation;
 use crate::link_type::LinkType;
-use crate::message::{CtgpLink, Message};
+use crate::message::{CtgpLink, Message, UpdateStatus};
 use crate::mii_rendering;
+use crate::ui::constants::VERSION;
 use crate::ui::edit_data::{self, EditBuffers, VEHICLES, parse_date, parse_in_game_time};
 use crate::ui::footer_tab::FooterTab;
 use crate::ui::input_playback::{self, InputPlayback};
 use crate::ui::{assets, image_handles, widgets};
+use crate::update_checker::{self, fetch_latest_version};
 
 /// A ghost and everything derived from it that the UI needs to render.
 struct LoadedGhost {
@@ -54,6 +56,7 @@ pub struct RkgInspector {
     input_box_handle: image::Handle,
     screen: Screen,
     active_footer_tab: FooterTab,
+    update_status: UpdateStatus,
 }
 
 impl RkgInspector {
@@ -67,6 +70,7 @@ impl RkgInspector {
             input_box_handle: image::Handle::from_bytes(assets::INPUT_BOX),
             screen: Screen::Main,
             active_footer_tab: FooterTab::CtgpIdentity,
+            update_status: UpdateStatus::Idle,
         }
     }
 
@@ -559,6 +563,27 @@ impl RkgInspector {
                 loaded.ghost.set_input_data_compressed(compressed);
                 Task::none()
             }),
+
+            Message::CheckForUpdates => {
+                self.update_status = UpdateStatus::Checking;
+                Task::perform(fetch_latest_version(), Message::UpdateCheckCompleted)
+            }
+
+            Message::UpdateCheckCompleted(latest_version) => {
+                self.update_status = match latest_version {
+                    Some(latest) if latest > VERSION => UpdateStatus::Available(latest),
+                    Some(_) => UpdateStatus::UpToDate,
+                    None => UpdateStatus::CheckFailed,
+                };
+                Task::none()
+            }
+
+            Message::OpenReleasesPage => {
+                if webbrowser::open(update_checker::RELEASES_PAGE_URL).is_ok() {
+                    // TODO: error handle
+                }
+                Task::none()
+            }
         }
     }
 
@@ -584,6 +609,7 @@ impl RkgInspector {
         let clear_ghosts_button = widgets::clear_ghosts_button(!self.ghosts.is_empty());
         let toggle_edit_button = widgets::toggle_edit_button(self.active().is_some());
         let save_as_button = widgets::save_as_button(self.active().is_some());
+        let update_check_button = widgets::update_check_button(self.update_status);
 
         let mut s = stack!(
             background,
@@ -594,6 +620,7 @@ impl RkgInspector {
             clear_ghosts_button,
             toggle_edit_button,
             save_as_button,
+            update_check_button,
         )
         .width(Length::Fill)
         .height(Length::Fill);

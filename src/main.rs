@@ -13,17 +13,19 @@ pub mod link_type;
 pub mod message;
 pub mod mii_rendering;
 pub mod ui;
+pub mod update_checker;
 
 pub fn main() -> iced::Result {
     let initial_path: Option<std::path::PathBuf> = std::env::args().nth(1).map(Into::into);
 
     iced::application(
         move || {
-            let task = initial_path
+            let ghost_task = initial_path
                 .clone()
                 .map(|p| Task::done(Message::GhostPicked(Some(p))))
                 .unwrap_or(Task::none());
-            (RkgInspector::new(), task)
+            let update_task = Task::done(Message::CheckForUpdates);
+            (RkgInspector::new(), Task::batch([ghost_task, update_task]))
         },
         RkgInspector::update,
         RkgInspector::view,

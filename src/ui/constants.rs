@@ -12,4 +12,21 @@ pub const CTMKF: Font = Font {
     ..Font::DEFAULT
 };
 
-pub const VERSION: &str = "v1.1.0";
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Version {
+    pub major: u16,
+    pub minor: u16,
+    pub patch: u16,
+}
+
+pub const VERSION: Version = Version {
+    major: 1,
+    minor: 0,
+    patch: 0,
+};
+
+impl std::fmt::Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "v{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
