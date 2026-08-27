@@ -3757,7 +3757,7 @@ dependencies = [
 
 [[package]]
 name = "rkg-inspector"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "chrono",
  "futures-util",
@@ -3773,9 +3773,9 @@ dependencies = [
 
 [[package]]
 name = "rkg-utils"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd695ea4303d2878420a6a80fb0403bb889b9662c68ff972fe080b58dff78672"
+checksum = "0657cf396bd4fdc19ceb27b5407784186741cb1230f38dd70cc46808f77cec1d"
 dependencies = [
  "chrono",
  "sha1",
