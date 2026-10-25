@@ -2,7 +2,7 @@ use std::sync::OnceLock;
 
 use rkg_utils::Header;
 use rkg_utils::header::{
-    Controller, Date, GhostType, InGameTime, Location, SlotId, TransmissionMod,
+    Controller, Date, GhostType, InGameTime, Location, SlotId,
     combo::{Character, Vehicle},
     location::constants::{Country, Subregion, Version},
 };
@@ -168,13 +168,6 @@ pub const CONTROLLERS: [Controller; 4] = [
     Controller::Nunchuk,
     Controller::Classic,
     Controller::Gamecube,
-];
-
-pub const TRANSMISSION_MODS: [TransmissionMod; 4] = [
-    TransmissionMod::Vanilla,
-    TransmissionMod::AllInside,
-    TransmissionMod::AllBikeInside,
-    TransmissionMod::AllOutside,
 ];
 
 pub const GHOST_TYPES: [GhostType; 38] = [

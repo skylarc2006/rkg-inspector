@@ -6,7 +6,7 @@ use iced::{
     },
 };
 use rkg_utils::{
-    CTGPFooter, ControllerInput, FooterType, Ghost, Mii, SPFooter, Shroomstrat, footer::ctgp_footer::Category, header::{Controller, Date, InGameTime, TransmissionMod, combo::GetWeightClass},
+    CTGPFooter, ControllerInput, FooterType, Ghost, Mii, SPFooter, Shroomstrat, footer::ctgp_footer::Category, header::{Controller, Date, InGameTime, combo::GetWeightClass},
 };
 
 use std::{cmp::max, time::Duration};
@@ -19,7 +19,7 @@ use crate::{
         constants::{CTMKF, RODIN_NTLG_PRO_EB, VERSION},
         controller_canvas::{DPadCanvas, StickCanvas},
         edit_data::{
-            self, CHARACTERS, CONTROLLERS, EditBuffers, GHOST_TYPES, SLOT_IDS, TRANSMISSION_MODS,
+            self, CHARACTERS, CONTROLLERS, EditBuffers, GHOST_TYPES, SLOT_IDS,
             VEHICLES,
         },
         fit_text::FitText,
@@ -514,7 +514,7 @@ pub fn ctgp_rtc_info_element<'a>(ctgp_footer: &CTGPFooter) -> Element<'a, Messag
     let seconds = (total_ms % 60_000) / 1_000;
     let millis = total_ms % 1_000;
 
-    write!(s, "\nRun duration: {}m {}s {}ms", minutes, seconds, millis).unwrap();
+    write!(s, "\nRun duration: {}m {:02}s {:03}ms", minutes, seconds, millis).unwrap();
 
     info_paragraph(s, styles::grey_text(), 20.0, 170, 515)
 }
@@ -960,8 +960,7 @@ pub fn character_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Ele
 }
 
 pub fn vehicle_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Element<'a, Message> {
-    use std::fmt::Write;
-    let mut t = format!(
+    let t = format!(
         "{} ({})",
         ghost.header().combo().vehicle(),
         if ghost.header().is_automatic_drift() {
@@ -970,10 +969,6 @@ pub fn vehicle_element<'a>(ghost: &'a Ghost, handle: &'a image::Handle) -> Eleme
             "Manual"
         },
     );
-
-    if ghost.header().transmission_mod() != TransmissionMod::Vanilla {
-        write!(t, " ({})", ghost.header().transmission_mod()).unwrap();
-    }
 
     let tooltip_text = text(t)
     .font(RODIN_NTLG_PRO_EB);
@@ -1285,13 +1280,7 @@ pub fn edit_form<'a>(ghost: &'a Ghost, buffers: &'a EditBuffers) -> Element<'a, 
     )
     .width(150)
     .text_size(16);
-    let transmission_picker = pick_list(
-        TRANSMISSION_MODS,
-        Some(header.transmission_mod()),
-        Message::EditTransmissionModSelected,
-    )
-    .width(180)
-    .text_size(16);
+    
     let ghost_type_picker = pick_list(
         GHOST_TYPES,
         Some(header.ghost_type()),
@@ -1349,7 +1338,6 @@ pub fn edit_form<'a>(ghost: &'a Ghost, buffers: &'a EditBuffers) -> Element<'a, 
         edit_row("Character", character_picker),
         edit_row("Vehicle", vehicle_picker),
         edit_row("Controller", controller_picker),
-        edit_row("Transmission mod", transmission_picker),
         edit_row("Ghost type", ghost_type_picker),
         edit_row("", drift_checkbox),
         edit_row("Finish time", finish_time_input),

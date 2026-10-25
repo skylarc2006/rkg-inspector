@@ -497,16 +497,6 @@ impl RkgInspector {
                 Task::none()
             }),
 
-            Message::EditTransmissionModSelected(transmission_mod) => {
-                self.with_loaded_mut(|loaded| {
-                    loaded
-                        .ghost
-                        .header_mut()
-                        .set_transmission_mod(transmission_mod);
-                    Task::none()
-                })
-            }
-
             Message::EditGhostTypeSelected(ghost_type) => self.with_loaded_mut(|loaded| {
                 loaded.ghost.header_mut().set_ghost_type(ghost_type);
                 Task::none()

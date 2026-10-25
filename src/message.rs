@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use iced::widget::image;
 use iced::{Size, window};
 use rkg_utils::header::{
-    Controller, GhostType, SlotId, TransmissionMod,
+    Controller, GhostType, SlotId,
     combo::{Character, Vehicle},
     location::constants::{Country, Subregion},
 };
@@ -57,7 +57,6 @@ pub enum Message {
     EditCharacterSelected(Character),
     EditVehicleSelected(Vehicle),
     EditControllerSelected(Controller),
-    EditTransmissionModSelected(TransmissionMod),
     EditGhostTypeSelected(GhostType),
     EditAutomaticDriftToggled(bool),
     EditCountrySelected(Country),
